@@ -2,15 +2,14 @@
 program main
   use assoc_critbit_trie
   implicit none
-  integer :: i,j
-  character(:), allocatable :: mykey, myval
-  type(assoc) :: t
+  character(:), allocatable :: myval
+  type(assoc) :: myassoc
 
-  call t%init
-  call t%add('a', 'v')
-  call t%add('aa', 'vv')
-  call t%rm('a')
-  myval = t%get('aa')
+  call myassoc%init
+  call myassoc%add('a', 'foo')
+  call myassoc%add('aa', 'bar')
+  call myassoc%rm('a')
+  myval = myassoc%get('aa')
   print *, myval
 end program main
 
