@@ -1,9 +1,47 @@
 
-module const_whole
+module param_whole
   implicit none
   integer, parameter :: TRIE_SIZE=32  !initial number of key-value pairs
-  character(8), parameter :: NULLTERM='00000000'  !special octet for string termination
-end module const_whole
+  character(8), parameter :: NULLTERM='00000000'  !special octet as string termination
+end module param_whole
+
+module util_string_array
+  implicit none
+  type strarray
+    character, allocatable :: c(:)
+  end type strarray
+
+contains
+  function split(str) result(arr)
+    character(*), intent(in) :: str
+    character :: arr(len_trim(str))
+    integer :: i
+    do i=1, len_trim(str)
+      arr(i) = str(i:i)
+    end do
+  end function split
+
+  function join(arr) result(str)
+    character, intent(in) :: arr(:)
+    character :: str*(size(arr))
+    integer :: i
+    do i=1, size(arr)
+      str(i:i) = arr(i)
+    end do
+  end function join
+
+  integer function get_crit_pos(seq1, seq2)
+    character, intent(in) :: seq1(:), seq2(:)
+    integer :: i
+    do i=1, min(size(seq1), size(seq2))
+      if(seq1(i).ne.seq2(i)) then
+        get_crit_pos = i
+        return
+      end if
+    end do
+    get_crit_pos = 0
+  end function get_crit_pos
+end module util_string_array
 
 module class_resource_pool
   implicit none
@@ -52,32 +90,6 @@ contains
   end subroutine expand
 end module class_resource_pool
 
-module util_string_array
-  implicit none
-  type strarray
-    character, allocatable :: c(:)
-  end type strarray
-
-contains
-  function split(str) result(arr)
-    character(*), intent(in) :: str
-    character :: arr(len_trim(str))
-    integer :: i
-    do i=1, len_trim(str)
-      arr(i) = str(i:i)
-    end do
-  end function split
-
-  function join(arr) result(str)
-    character, intent(in) :: arr(:)
-    character :: str*(size(arr))
-    integer :: i
-    do i=1, size(arr)
-      str(i:i) = arr(i)
-    end do
-  end function join
-end module util_string_array
-
 module class_trie
   use class_resource_pool
   implicit none
@@ -87,8 +99,9 @@ module class_trie
   end type node
   type, public, extends(respool) :: trie
     type(node), allocatable :: t(:)
+    integer :: root
   contains
-    procedure :: init, expand, cp, retrieve
+    procedure :: init, expand, release, part_smallest
   end type trie
 
 contains
@@ -96,7 +109,7 @@ contains
     class(trie), intent(inout) :: self
     integer, intent(in) :: num
     allocate(self%t(num))
-    self%t(1)%dat = 0
+    self%root = 1
     call self%respool%init(num)
   end subroutine init
 
@@ -112,32 +125,25 @@ contains
     call self%respool%expand
   end subroutine expand
 
-  subroutine cp(self, src, dest, do_cp_up)
+  subroutine release(self, idx)
     class(trie), intent(inout) :: self
-    integer, intent(in) :: src, dest
-    logical, optional :: do_cp_up
-    self%t(dest)%n0 = self%t(src)%n0
-    self%t(dest)%n1 = self%t(src)%n1
-    self%t(dest)%dat = self%t(src)%dat
-    if(present(do_cp_up)) self%t(dest)%up = self%t(src)%up
-  end subroutine cp
+    integer, intent(in) :: idx
+    self%t(idx)%n0 = 0
+    self%t(idx)%n1 = 0
+    self%t(idx)%up = 0
+    self%t(idx)%dat = 0
+    call self%respool%release(idx)
+  end subroutine release
 
-  recursive function retrieve(self, bseq, node) result(nearleaf)
+  recursive integer function part_smallest(self, node)
     class(trie), intent(inout) :: self
-    character, intent(in) :: bseq(:)
-    integer :: node, dat, next, nearleaf
-    dat = self%t(node)%dat
-    if(0.lt.dat) then
-      nearleaf = node
+    integer, intent(in) :: node
+    if(0.lt.self%t(node)%dat) then
+      part_smallest = node
     else
-      if('0'.eq.bseq(-dat)) then
-        next = self%t(node)%n0
-      else
-        next = self%t(node)%n1
-      end if
-      nearleaf = self%retrieve(bseq, next)
+      part_smallest = self%part_smallest(self%t(node)%n0)
     end if
-  end function retrieve
+  end function part_smallest
 end module class_trie
 
 module class_kv_arrays
@@ -148,7 +154,7 @@ module class_kv_arrays
   type, public, extends(respool) :: kvarrs
     type(strarray), allocatable :: sk(:), bk(:), v(:)
   contains
-    procedure :: init, expand
+    procedure :: init, expand, release
   end type kvarrs
 
 contains
@@ -177,20 +183,31 @@ contains
     allocate(a(2*n))
     a(1:n) = tmp
   end subroutine expand1
+
+  subroutine release(self, idx)
+    class(kvarrs), intent(inout) :: self
+    integer, intent(in) :: idx
+    self%sk(idx)%c = ("")
+    self%bk(idx)%c = ("")
+    self%v(idx)%c = ("")
+    call self%respool%release(idx)
+  end subroutine release
 end module class_kv_arrays
 
 module assoc_critbit_trie
-  use const_whole
+  use param_whole
   use util_string_array
   use class_trie
   use class_kv_arrays
   implicit none
-  private
+  !private
   type, public :: assoc
     type(trie) :: cbt
     type(kvarrs) :: kvs
   contains
-    procedure :: init, add, get, rm
+    procedure :: init, free, put, get, del, have, keys
+    !procedure, private :: get_crit_digit, retrieve, is_same_key
+    procedure :: get_crit_digit, retrieve, is_same_key
   end type assoc
 
 contains
@@ -199,6 +216,11 @@ contains
     call self%cbt%init(2*TRIE_SIZE)
     call self%kvs%init(TRIE_SIZE)
   end subroutine init
+
+  subroutine free(self)
+    class(assoc), intent(inout) :: self
+    deallocate(self%cbt%que, self%cbt%t, self%kvs%que, self%kvs%sk, self%kvs%bk, self%kvs%v)
+  end subroutine free
 
   character(8) function char_to_oct(ch)
     character(*), intent(in) :: ch
@@ -216,40 +238,95 @@ contains
     end do
     bitstr = bitstr//NULLTERM
     bitseq = split(bitstr)
-  end function str_to_bit 
+  end function str_to_bit
 
-  subroutine add(self, k, v)
+  integer function get_crit_digit(self, bseq, node)
+    class(assoc), intent(inout) :: self
+    character, intent(in) :: bseq(:)
+    integer, intent(in) :: node
+    character, allocatable :: cseq(:)
+    integer :: small, kvloc
+    small = self%cbt%part_smallest(node)
+    kvloc = self%cbt%t(small)%dat
+    cseq  = self%kvs%bk(kvloc)%c
+    get_crit_digit = get_crit_pos(bseq, cseq)
+  end function get_crit_digit
+
+  recursive subroutine retrieve(self, bseq, node0, near, cpos)
+    class(assoc), intent(inout) :: self
+    character, intent(in) :: bseq(:)
+    integer, intent(in) :: node0
+    integer, intent(out) :: near, cpos
+    character, allocatable :: cutseq(:)
+    integer :: node, crit, next
+    if(0.eq.node0) then
+      node = self%cbt%root
+    else
+      node = node0
+    end if
+    near = node
+    crit = -self%cbt%t(node)%dat
+    if(0.eq.crit) return
+    cpos = get_crit_digit(self, bseq, node)
+    if(0.gt.crit) return
+    if(0.lt.cpos .and. cpos.lt.crit) return
+    if('0'.eq.bseq(crit)) then
+      next = self%cbt%t(node)%n0
+    else
+      next = self%cbt%t(node)%n1
+    end if
+    call self%retrieve(bseq, next, near, cpos)
+  end subroutine retrieve
+
+  logical function is_same_key(self, bseq, node)
+    class(assoc), intent(inout) :: self
+    character, intent(in) :: bseq(:)
+    integer, intent(in) :: node
+    integer :: w
+    is_same_key = .false.
+    w = self%cbt%t(node)%dat
+    if(0.ge.w) return
+    if(all(bseq.eq.self%kvs%bk(w)%c)) is_same_key = .true.
+  end function is_same_key
+
+  subroutine put(self, k, v)
     class(assoc), intent(inout) :: self
     character(*), intent(in) :: k, v
-    integer :: src, dest, new, srckv, kvloc, cdigit
+    integer :: src, node, new, up, kvloc, cpos
     character, allocatable :: bseq(:)
     character :: cbit
 
     bseq = str_to_bit(k)
     call self%cbt%acquire(new)
 
-    if(0.ne.self%cbt%t(1)%dat) then
-      src = self%cbt%retrieve(bseq,1)
-      srckv = self%cbt%t(src)%dat
-      if(all(bseq.eq.self%kvs%bk(srckv)%c)) then
+    if(0.ne.self%cbt%t(self%cbt%root)%dat) then
+      call self%retrieve(bseq,0,src,cpos)
+      if(self%is_same_key(bseq, src)) then
         call self%cbt%release(new)
-        self%kvs%v(srckv)%c = split(v)
+        self%kvs%v(self%cbt%t(src)%dat)%c = split(v)
         return
       end if
-      call self%cbt%acquire(dest)
-      self%cbt%t(dest)%dat = srckv
-      self%cbt%t(dest)%up = src
-      self%cbt%t(new)%up = src
-      cdigit = get_crit_digit(bseq, self%kvs%bk(srckv)%c)
-      cbit = bseq(cdigit)
-      self%cbt%t(src)%dat = -cdigit
-      if('0'.eq.cbit) then
-        self%cbt%t(src)%n0 = new
-        self%cbt%t(src)%n1 = dest
+      call self%cbt%acquire(node)
+      up = self%cbt%t(src)%up
+      cbit = bseq(cpos)
+      if(0.eq.up) then
+        self%cbt%root = node
+      else if(src.eq.self%cbt%t(up)%n0) then
+        self%cbt%t(up)%n0 = node
       else
-        self%cbt%t(src)%n0 = dest
-        self%cbt%t(src)%n1 = new
+        self%cbt%t(up)%n1 = node
       end if
+      if('0'.eq.cbit) then
+        self%cbt%t(node)%n0 = new
+        self%cbt%t(node)%n1 = src
+      else
+        self%cbt%t(node)%n0 = src
+        self%cbt%t(node)%n1 = new
+      end if
+      self%cbt%t(node)%up = up
+      self%cbt%t(node)%dat = -cpos
+      self%cbt%t(src)%up = node
+      self%cbt%t(new)%up = node
     end if
 
     call self%kvs%acquire(kvloc)
@@ -257,53 +334,102 @@ contains
     self%kvs%sk(kvloc)%c = split(k)
     self%kvs%bk(kvloc)%c = bseq
     self%kvs%v(kvloc)%c = split(v)
-  end subroutine add
+  end subroutine put
 
-  subroutine rm(self, key)
+  subroutine del(self, key)
     class(assoc), intent(inout) :: self
     character(*), intent(in) :: key
     character, allocatable :: bseq(:)
-    integer :: leaf, kvloc, knot, pair
+    integer :: leaf, kvloc, up, upup, root, fellow, cpos
 
     bseq = str_to_bit(key)
-    leaf = self%cbt%retrieve(bseq,1)
+    root = self%cbt%root
+    call self%retrieve(bseq,0,leaf,cpos)
     kvloc = self%cbt%t(leaf)%dat
-    if(all(bseq.eq.self%kvs%bk(kvloc)%c)) then
-      if(0.gt.self%cbt%t(1)%dat) then
-        knot = self%cbt%t(leaf)%up
-        if(leaf.eq.self%cbt%t(knot)%n0) then
-          pair = self%cbt%t(knot)%n1
-        else
-          pair = self%cbt%t(knot)%n0
-        end if
-        call self%cbt%cp(pair, knot)
-        call self%cbt%release(pair)
+    if(0.ge.kvloc) return
+    if(any(bseq.ne.self%kvs%bk(kvloc)%c)) return
+    if(0.gt.self%cbt%t(root)%dat) then
+      up = self%cbt%t(leaf)%up
+      if(leaf.eq.self%cbt%t(up)%n0) then
+        fellow = self%cbt%t(up)%n1
+      else
+        fellow = self%cbt%t(up)%n0
       end if
-      call self%cbt%release(leaf)
-      call self%kvs%release(kvloc)
+      if(root.eq.up) then
+        self%cbt%root = fellow
+        self%cbt%t(fellow)%up = 0
+      else
+        upup = self%cbt%t(up)%up
+        if(up.eq.self%cbt%t(upup)%n0) then
+          self%cbt%t(upup)%n0 = fellow
+        else
+          self%cbt%t(upup)%n1 = fellow
+        end if
+        self%cbt%t(fellow)%up = upup
+      end if
+      call self%cbt%release(up)
     end if
-  end subroutine rm
+    call self%cbt%release(leaf)
+    call self%kvs%release(kvloc)
+  end subroutine del
 
   function get(self, key)
     class(assoc), intent(inout) :: self
     character(*), intent(in) :: key
-    character, allocatable :: bseq(:)
     character(:), allocatable :: get
-    integer :: near, kvloc
-    bseq = str_to_bit(key)
-    near = self%cbt%retrieve(bseq,1)
-    kvloc = self%cbt%t(near)%dat
-    if(all(bseq.eq.self%kvs%bk(kvloc)%c)) get = join(self%kvs%v(kvloc)%c)
+    call get1(self, key, get)
   end function get
 
-  integer function get_crit_digit(seq1, seq2)
-    character, intent(in) :: seq1(:), seq2(:)
-    integer :: i=1
-    do while(seq1(i).eq.seq2(i))
-      i=1+i
+  logical function have(self, key)
+    class(assoc), intent(inout) :: self
+    character(*), intent(in) :: key
+    character(:), allocatable :: val
+    call get1(self, key, val, have)
+  end function have
+
+  subroutine get1(self, key, val, exist)
+    class(assoc), intent(inout) :: self
+    character(*), intent(in) :: key
+    character, allocatable :: bseq(:)
+    character(:), allocatable :: val
+    logical, optional :: exist
+    integer :: near, kvloc, cpos
+    bseq = str_to_bit(key)
+    call self%retrieve(bseq,0,near,cpos)
+    kvloc = self%cbt%t(near)%dat
+    if(present(exist)) exist = .false.
+    if(0.ge.kvloc) return
+    if(all(bseq.eq.self%kvs%bk(kvloc)%c)) then
+      if(present(exist)) exist = .true.
+      val = join(self%kvs%v(kvloc)%c)
+    end if
+  end subroutine get1
+
+  subroutine keys(self, v)
+    class(assoc), intent(inout) :: self
+    type(strarray), intent(out), allocatable :: v(:)
+    integer, allocatable :: ar(:)
+    integer :: n, i=1
+    n = -1+self%kvs%ind
+    allocate(v(n), ar(n))
+    call push_key(self%cbt,self%cbt%root,ar,i)
+    do i=1,n
+      v(i) = self%kvs%sk(self%cbt%t(ar(i))%dat)
     end do
-    get_crit_digit = i
-  end function get_crit_digit
+  end subroutine keys
+
+  recursive subroutine push_key(cbt, k, ar, i)
+    type(trie), intent(in) :: cbt
+    integer, intent(in) :: k
+    integer, intent(inout) :: ar(:), i
+    if(0.lt.cbt%t(k)%dat) then
+      ar(i) = k
+      i = 1+i
+    else
+      call push_key(cbt, cbt%t(k)%n0, ar, i)
+      call push_key(cbt, cbt%t(k)%n1, ar, i)
+    end if
+  end subroutine push_key
 end module assoc_critbit_trie
 
 
