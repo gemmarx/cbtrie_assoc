@@ -6,6 +6,7 @@ program main
   integer :: i
   type(assoc) :: myassoc
   type(strarray), allocatable :: mykeys(:)
+  character(:), allocatable :: myval
 
 
   call myassoc%init
