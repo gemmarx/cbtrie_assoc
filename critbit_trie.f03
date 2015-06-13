@@ -41,6 +41,26 @@ contains
     end do
     get_crit_pos = 0
   end function get_crit_pos
+
+! A reverse operation against "ntos" is "read(str, *), num".
+  function ntos(num) result(str)
+    class(*), intent(in) :: num
+    character :: fix*100
+    character(:), allocatable :: str
+    select type(num)
+    type is(integer)
+      write(fix, *), num
+    type is(real)
+      write(fix, *), num
+    type is(double precision)
+      write(fix, *), num
+    type is(complex)
+      write(fix, *), num
+    type is(complex(kind(0d0)))
+      write(fix, *), num
+    end select
+    str = trim(adjustl(fix))
+  end function ntos
 end module util_string_array
 
 module class_resource_pool
@@ -347,7 +367,7 @@ contains
     call self%retrieve(bseq,0,leaf,cpos)
     kvloc = self%cbt%t(leaf)%dat
     if(0.ge.kvloc) return
-    if(any(bseq.ne.self%kvs%bk(kvloc)%c)) return
+    if(.not.self%is_same_key(bseq,leaf)) return
     if(0.gt.self%cbt%t(root)%dat) then
       up = self%cbt%t(leaf)%up
       if(leaf.eq.self%cbt%t(up)%n0) then

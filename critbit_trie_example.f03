@@ -22,6 +22,9 @@ program main
   call myassoc%put('aaaaaaaaaa', 'foobarfoo')
   call myassoc%put('aaaa', 'foofoo')
 
+  call myassoc%put('real_num', ntos(5.12d-2))
+  call myassoc%put('complex_num', ntos((1.2, 3.4)))
+
   call myassoc%keys(mykeys)
   do i=1, size(mykeys)
     print *, mykeys(i)%c
@@ -40,6 +43,14 @@ program main
   print *, myassoc%get('aa')
   call myassoc%put('aaa', 'toctoc')
   print *, myassoc%get('aaa')
+
+
+  myval = myassoc%get('real_num')
+  read(myval, *), dp
+  print *, dp
+  myval = myassoc%get('complex_num')
+  read(myval, *), cp
+  print *, cp
 
 end program main
 
