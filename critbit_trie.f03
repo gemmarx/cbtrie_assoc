@@ -200,14 +200,14 @@ module assoc_critbit_trie
   use class_trie
   use class_kv_arrays
   implicit none
-  !private
+  private
   type, public :: assoc
     type(trie) :: cbt
     type(kvarrs) :: kvs
   contains
     procedure :: init, free, put, get, del, have, keys
-    !procedure, private :: get_crit_digit, retrieve, is_same_key
-    procedure :: get_crit_digit, retrieve, is_same_key
+    procedure, private :: get_crit_digit, retrieve, is_same_key
+    !procedure :: get_crit_digit, retrieve, is_same_key
   end type assoc
 
 contains
@@ -431,12 +431,6 @@ contains
     end if
   end subroutine push_key
 end module assoc_critbit_trie
-
-
-
-
-
-
 
 
 
