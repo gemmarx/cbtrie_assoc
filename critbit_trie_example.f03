@@ -48,12 +48,8 @@ program main
   print *, myassoc%get('aaa')
 
 
-  myval = myassoc%get('real_num')
-  read(myval, *), dp
-  print *, dp
-  myval = myassoc%get('complex_num')
-  read(myval, *), cp
-  print *, cp
+  print *, stodp(myassoc%get('real_num'))
+  print *, stocp(myassoc%get('complex_num'))
 
 end program main
 

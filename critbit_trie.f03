@@ -42,10 +42,9 @@ contains
     get_crit_pos = 0
   end function get_crit_pos
 
-! A reverse operation against "ntos" is "read(str, *), num".
   function ntos(num) result(str)
     class(*), intent(in) :: num
-    character :: fix*100
+    character :: fix*255
     character(:), allocatable :: str
     select type(num)
     type is(integer)
@@ -61,6 +60,36 @@ contains
     end select
     str = trim(adjustl(fix))
   end function ntos
+
+  function stoi(str) result(num)
+    character(*), intent(in) :: str
+    integer :: num
+    read(str, *), num
+  end function stoi
+
+  function stor(str) result(num)
+    character(*), intent(in) :: str
+    real :: num
+    read(str, *), num
+  end function stor
+
+  function stodp(str) result(num)
+    character(*), intent(in) :: str
+    double precision :: num
+    read(str, *), num
+  end function stodp
+
+  function stocp(str) result(num)
+    character(*), intent(in) :: str
+    complex :: num
+    read(str, *), num
+  end function stocp
+
+  function stocd(str) result(num)
+    character(*), intent(in) :: str
+    complex(kind(0d0)) :: num
+    read(str, *), num
+  end function stocd
 end module util_string_array
 
 module class_resource_pool
@@ -227,7 +256,7 @@ module assoc_critbit_trie
   contains
     procedure :: init, free, put, get, del, have, keys
     procedure, private :: get_crit_digit, retrieve, is_same_key
-    !procedure :: get_crit_digit, retrieve, is_same_key
+    !procedure :: get_crit_digit, retrieve, is_same_key, dump
   end type assoc
 
 contains
@@ -241,6 +270,38 @@ contains
     class(assoc), intent(inout) :: self
     deallocate(self%cbt%que, self%cbt%t, self%kvs%que, self%kvs%sk, self%kvs%bk, self%kvs%v)
   end subroutine free
+
+  subroutine dump(self)
+    class(assoc), intent(inout) :: self
+    integer, allocatable :: ar(:)
+    integer :: n, i, g(5), cell
+
+    write(*, '(a)', advance='no'), 'root node:  '
+    print *, self%cbt%root
+    n = -1+self%cbt%ind; i=1
+    allocate(ar(n))
+    call push_key(self%cbt,self%cbt%root,ar,i,.true.)
+    print *, 'node dat n0 n1 up'
+    do i=1, n
+      g(1) = ar(i)
+      g(2) = self%cbt%t(ar(i))%dat
+      g(3) = self%cbt%t(ar(i))%n0
+      g(4) = self%cbt%t(ar(i))%n1
+      g(5) = self%cbt%t(ar(i))%up
+      print *, g(1:5)
+    end do
+    n = -1+self%kvs%ind; i=1
+    deallocate(ar)
+    allocate(ar(n))
+    call push_key(self%cbt,self%cbt%root,ar,i)
+    print *, 'cell  key  value'
+    do i=1, n
+      cell = self%cbt%t(ar(i))%dat
+      write(*, '(i0,a)', advance='no'), ar(i), '  '
+      write(*, '(a)', advance='no'), join(self%kvs%sk(cell)%c)
+      print *, ' ', self%kvs%v(cell)%c
+    end do
+  end subroutine
 
   character(8) function char_to_oct(ch)
     character(*), intent(in) :: ch
@@ -438,16 +499,21 @@ contains
     end do
   end subroutine keys
 
-  recursive subroutine push_key(cbt, k, ar, i)
+  recursive subroutine push_key(cbt, k, ar, i, all_node)
     type(trie), intent(in) :: cbt
     integer, intent(in) :: k
     integer, intent(inout) :: ar(:), i
+    logical, intent(in), optional :: all_node
     if(0.lt.cbt%t(k)%dat) then
       ar(i) = k
       i = 1+i
     else
-      call push_key(cbt, cbt%t(k)%n0, ar, i)
-      call push_key(cbt, cbt%t(k)%n1, ar, i)
+      if(present(all_node)) then
+        ar(i) = k
+        i = 1+i
+      end if
+      call push_key(cbt, cbt%t(k)%n0, ar, i, all_node)
+      call push_key(cbt, cbt%t(k)%n1, ar, i, all_node)
     end if
   end subroutine push_key
 end module assoc_critbit_trie
