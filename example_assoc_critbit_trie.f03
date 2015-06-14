@@ -15,11 +15,15 @@ program main
   call myassoc%put('aaaaaaaaa', 'foofoobaz')
   call myassoc%put('aaaaaa', 'foobaz')
   call myassoc%put('aaaaaaaa', 'foofoobar')
+  call myassoc%put('多バイト文字', 'ＴＯ ＥＲＡＳＥ')
   call myassoc%del('aaaaaa')
   call myassoc%put('aa', 'bar')
   call myassoc%put('aba', 'baz')
+  call myassoc%del('多バイト文字')
   call myassoc%put('a', 'foo')
   call myassoc%put('aaaaa', 'foobar')
+  call myassoc%put('多バイト文字', '日式漢字')
+
   call myassoc%put('aaaaaaa', 'foofoofoo')
   call myassoc%del('a')
   call myassoc%put('aaaaaaaaaa', 'foobarfoo')
@@ -46,6 +50,7 @@ program main
   print *, myassoc%get('aa')
   call myassoc%put('aaa', 'toctoc')
   print *, myassoc%get('aaa')
+  print *, myassoc%get('多バイト文字')
 
 
   print *, stodp(myassoc%get('real_num'))

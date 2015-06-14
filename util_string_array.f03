@@ -1,3 +1,12 @@
+!
+! "strarray" type provides a wrapper of allocatable array of character(1) instead of variable length character string.
+! It may be better to use differed length character if your compiler is able to deal with it in type structures. (e.g. gcc-4.9 or later)
+!
+
+!
+! Functions named "*to*" are converters between numeric types and character string
+!
+
 
 module util_string_array
   implicit none
