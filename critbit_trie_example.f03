@@ -7,6 +7,8 @@ program main
   type(assoc) :: myassoc
   type(strarray), allocatable :: mykeys(:)
   character(:), allocatable :: myval
+  double precision :: dp
+  complex(kind(0d0)) :: cp
 
 
   call myassoc%init
@@ -36,11 +38,11 @@ program main
   print *, myassoc%have('aaa')
   print *, myassoc%have('uuu')
   print *, myassoc%get('aa')
-  call myassoc%put('aa', 'hogera')
+  call myassoc%put('aa', 'uuura')
   print *, myassoc%get('aa')
   call myassoc%del('aa')
   print *, myassoc%get('aa')
-  call myassoc%put('aa', 'piyora')
+  call myassoc%put('aa', 'ooora')
   print *, myassoc%get('aa')
   call myassoc%put('aaa', 'toctoc')
   print *, myassoc%get('aaa')

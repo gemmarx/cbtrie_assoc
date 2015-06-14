@@ -158,7 +158,7 @@ contains
   recursive integer function part_smallest(self, node)
     class(trie), intent(inout) :: self
     integer, intent(in) :: node
-    if(0.lt.self%t(node)%dat) then
+    if(0.le.self%t(node)%dat) then
       part_smallest = node
     else
       part_smallest = self%part_smallest(self%t(node)%n0)
