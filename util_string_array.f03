@@ -16,6 +16,8 @@ module util_string_array
     integer(1), allocatable :: c(:)
   end type bytearray
 
+  private :: put_str, get_str
+
 contains
   subroutine put_str(self, str)
     class(strarray), intent(inout) :: self
