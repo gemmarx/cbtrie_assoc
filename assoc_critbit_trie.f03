@@ -180,8 +180,8 @@ module assoc_critbit_trie
     type(kvarrs) :: kvs
   contains
     procedure :: init, free, put, get, del, have, keys
-    procedure, private :: get_crit_digit, retrieve, is_same_key
-    !procedure :: get_crit_digit, retrieve, is_same_key, dump
+    !procedure, private :: get_crit_digit, retrieve, is_same_key, dump
+    procedure :: get_crit_digit, retrieve, is_same_key, dump
   end type assoc
 
 contains
@@ -224,32 +224,16 @@ contains
     do i=1, n
       cell = self%cbt%t(ar(i))%dat
       write(*, '(i0,a)', advance='no'), cell, '   '
-      write(*, '(a)', advance='no'), join(self%kvs%sk(cell)%c)
-      print *, '=> ', self%kvs%v(cell)%c
+      write(*, '(a)', advance='no'), self%kvs%sk(cell)%get()
+      print *, '=> ', self%kvs%v(cell)%get()
       br = self%kvs%bk(cell)%c
       do j=1, size(br)
         write(*, '(a)', advance='no') ' '
-        write(*, '(a)', advance='no') byte_to_oct(br(j))
+        write(*, '(a)', advance='no') byte_to_bitchar(br(j))
       end do
       print *, ""
     end do
   end subroutine
-
-  character(8) function byte_to_oct(byte)
-    integer(1), intent(in) :: byte
-    write(byte_to_oct, '(b8.8)') byte
-  end function byte_to_oct
-
-  function str_to_byte(str) result(seq)
-    character(*), intent(in) :: str
-    integer(1), allocatable :: seq(:)
-    integer :: i, n
-    n = len_trim(str)
-    allocate(seq(n))
-    do i=1, n
-      seq(i) = reorder_case(iachar(str(i:i)))
-    end do
-  end function str_to_byte
 
   integer function get_crit_digit(self, bseq, node)
     class(assoc), intent(inout) :: self
@@ -460,12 +444,10 @@ contains
     integer, intent(inout) :: ar(:), i
     logical, intent(in), optional :: all_node
     if(0.lt.cbt%t(k)%dat) then
-      ar(i) = k
-      i = 1+i
+      ar(i)=k; i=1+i
     else
       if(present(all_node)) then
-        ar(i) = k
-        i = 1+i
+        ar(i)=k; i=1+i
       end if
       call push_key(cbt, cbt%t(k)%n0, ar, i, all_node)
       call push_key(cbt, cbt%t(k)%n1, ar, i, all_node)

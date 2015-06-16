@@ -7,6 +7,9 @@ module util_string_array
 ! It may be better to use differed length character for "strarray" type if your compiler is able to deal with it in type structures. (e.g. gcc-4.9 or later)
   type strarray
     character, allocatable :: c(:)
+    contains
+      procedure :: put => put_str
+      procedure :: get => get_str
   end type strarray
 
   type bytearray
@@ -14,6 +17,18 @@ module util_string_array
   end type bytearray
 
 contains
+  subroutine put_str(self, str)
+    class(strarray), intent(inout) :: self
+    character(*), intent(in) :: str
+    self%c = split(str)
+  end subroutine put_str
+
+  function get_str(self)
+    class(strarray), intent(inout) :: self
+    character(:), allocatable :: get_str
+    get_str = join(self%c)
+  end function get_str
+
   function split(str) result(arr)
     character(*), intent(in) :: str
     character :: arr(len_trim(str))
@@ -61,6 +76,22 @@ contains
       if(90.lt.code) code = 6+code
     end if
   end function reorder_case
+
+  character(8) function byte_to_bitchar(byte)
+    integer(1), intent(in) :: byte
+    write(byte_to_bitchar, '(b8.8)') byte
+  end function byte_to_bitchar
+
+  function str_to_byte(str) result(seq)
+    character(*), intent(in) :: str
+    integer(1), allocatable :: seq(:)
+    integer :: i, n
+    n = len_trim(str)
+    allocate(seq(n))
+    do i=1, n
+      seq(i) = reorder_case(iachar(str(i:i)))
+    end do
+  end function str_to_byte
 
 ! Functions named "*to*" are converters between numeric types and character string
   function ntos(num) result(str)

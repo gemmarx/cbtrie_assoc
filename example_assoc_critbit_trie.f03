@@ -30,7 +30,7 @@ program main
 
   call myassoc%keys(mykeys)
   do i=1, size(mykeys)
-    print *, mykeys(i)%c
+    print *, mykeys(i)%get()
   end do
 
 
