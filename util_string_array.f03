@@ -1,18 +1,17 @@
-!
-! "strarray" type provides a wrapper of allocatable array of character(1) instead of variable length character string.
-! It may be better to use differed length character if your compiler is able to deal with it in type structures. (e.g. gcc-4.9 or later)
-!
-
-!
-! Functions named "*to*" are converters between numeric types and character string
-!
-
 
 module util_string_array
   implicit none
+
+! Both types below makes simple wrappers of allocatable array.
+! The purpose is to make allocatable array of allocatable objects.
+! It may be better to use differed length character for "strarray" type if your compiler is able to deal with it in type structures. (e.g. gcc-4.9 or later)
   type strarray
     character, allocatable :: c(:)
   end type strarray
+
+  type bytearray
+    integer(1), allocatable :: c(:)
+  end type bytearray
 
 contains
   function split(str) result(arr)
@@ -33,18 +32,37 @@ contains
     end do
   end function join
 
-  integer function get_crit_pos(seq1, seq2)
-    character, intent(in) :: seq1(:), seq2(:)
+  character function uc(ch)
+    character, intent(in) :: ch
     integer :: i
-    do i=1, min(size(seq1), size(seq2))
-      if(seq1(i).ne.seq2(i)) then
-        get_crit_pos = i
-        return
-      end if
-    end do
-    get_crit_pos = 0
-  end function get_crit_pos
+    uc = ch
+    i = iachar(ch)
+    if(97.le.i .and. i.le.122) uc = achar(-32+i)
+  end function uc
 
+  character function lc(ch)
+    character, intent(in) :: ch
+    integer :: i
+    lc = ch
+    i = iachar(ch)
+    if(65.le.i .and. i.le.90) lc = achar(32+i)
+  end function lc
+
+! reorder "A-Z" and "a-z"
+  function reorder_case(i) result(code)
+    integer, intent(in) :: i  !ascii code
+    integer :: code
+    code = i
+    if(65.le.i .and. i.le.90) then
+      code = 65+2*(-65+i)
+      if(90.lt.code) code = 6+code
+    else if(97.le.i .and. i.le.122) then
+      code = 66+2*(-65+(-32+i))
+      if(90.lt.code) code = 6+code
+    end if
+  end function reorder_case
+
+! Functions named "*to*" are converters between numeric types and character string
   function ntos(num) result(str)
     class(*), intent(in) :: num
     character :: fix*255

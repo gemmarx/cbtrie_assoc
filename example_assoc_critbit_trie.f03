@@ -1,14 +1,11 @@
 
 program main
-  use assoc_critbit_trie
   use util_string_array
+  use assoc_critbit_trie
   implicit none
   integer :: i
   type(assoc) :: myassoc
   type(strarray), allocatable :: mykeys(:)
-  character(:), allocatable :: myval
-  double precision :: dp
-  complex(kind(0d0)) :: cp
 
 
   call myassoc%init
@@ -23,7 +20,6 @@ program main
   call myassoc%put('a', 'foo')
   call myassoc%put('aaaaa', 'foobar')
   call myassoc%put('多バイト文字', '日式漢字')
-
   call myassoc%put('aaaaaaa', 'foofoofoo')
   call myassoc%del('a')
   call myassoc%put('aaaaaaaaaa', 'foobarfoo')
