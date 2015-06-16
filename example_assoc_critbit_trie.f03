@@ -52,6 +52,8 @@ program main
   print *, stodp(myassoc%get('real_num'))
   print *, stocp(myassoc%get('complex_num'))
 
+  call myassoc%fin
+
 end program main
 
 

@@ -2,7 +2,6 @@
 module param_whole
   implicit none
   integer, parameter :: TRIE_SIZE=32  !initial number of key-value pairs
-  !character(8), parameter :: NULLTERM='00000000'  !special octet as string termination
 end module param_whole
 
 module class_resource_pool
@@ -179,9 +178,8 @@ module assoc_critbit_trie
     type(trie) :: cbt
     type(kvarrs) :: kvs
   contains
-    procedure :: init, free, put, get, del, have, keys
-    !procedure, private :: get_crit_digit, retrieve, is_same_key, dump
-    procedure :: get_crit_digit, retrieve, is_same_key, dump
+    procedure :: init, fin, put, get, del, have, keys, dump
+    procedure, private :: get_crit_digit, retrieve, is_same_key
   end type assoc
 
 contains
@@ -191,10 +189,10 @@ contains
     call self%kvs%init(TRIE_SIZE)
   end subroutine init
 
-  subroutine free(self)
+  subroutine fin(self)
     class(assoc), intent(inout) :: self
     deallocate(self%cbt%que, self%cbt%t, self%kvs%que, self%kvs%sk, self%kvs%bk, self%kvs%v)
-  end subroutine free
+  end subroutine fin
 
   subroutine dump(self)
     class(assoc), intent(inout) :: self
@@ -350,6 +348,8 @@ contains
     end if
 
     call self%kvs%acquire(kvloc)
+    self%cbt%t(new)%n0 = 0
+    self%cbt%t(new)%n1 = 0
     self%cbt%t(new)%dat = kvloc
     self%kvs%sk(kvloc)%c = split(k)
     self%kvs%bk(kvloc)%c = bseq
