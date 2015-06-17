@@ -2,8 +2,8 @@
 module param_whole
   implicit none
   integer, parameter :: TRIE_SIZE=32  !initial number of key-value pairs
-  character(10), parameter :: DEFAULT_CASE_ORDER='MESH'  !default sort order of keys
-                           !'MESH', 'ASCII' or 'IGNORE' can be selected
+  character(*), parameter :: DEFAULT_CASE_ORDER='MESH'  !default sort order of keys
+                           !'MESH', 'ASCII' or 'IGNORE' can be selected.
 end module param_whole
 
 module class_resource_pool
@@ -89,7 +89,7 @@ contains
   end subroutine expand
 
   recursive integer function part_smallest(self, node)
-    class(trie), intent(inout) :: self
+    class(trie), intent(in) :: self
     integer, intent(in) :: node
     if(0.le.self%t(node)%dat) then
       part_smallest = node
@@ -245,7 +245,7 @@ contains
   end subroutine
 
   integer function get_crit_digit(self, bseq, node)
-    class(assoc), intent(inout) :: self
+    class(assoc), intent(in) :: self
     integer(1), intent(in) :: bseq(:)
     integer, intent(in) :: node
     integer(1), allocatable :: cseq(:)
@@ -289,7 +289,7 @@ contains
   end function reorder_case
 
   recursive subroutine retrieve(self, bseq, node0, near, cpos)
-    class(assoc), intent(inout) :: self
+    class(assoc), intent(in) :: self
     integer(1), intent(in) :: bseq(:)
     integer, intent(in) :: node0
     integer, intent(out) :: near, cpos
@@ -314,7 +314,7 @@ contains
   end subroutine retrieve
 
   logical function is_same_key(self, bseq, node)
-    class(assoc), intent(inout) :: self
+    class(assoc), intent(in) :: self
     integer(1), intent(in) :: bseq(:)
     integer, intent(in) :: node
     integer(1), allocatable :: cseq(:)
@@ -413,21 +413,21 @@ contains
   end subroutine del
 
   function get(self, key)
-    class(assoc), intent(inout) :: self
+    class(assoc), intent(in) :: self
     character(*), intent(in) :: key
     character(:), allocatable :: get
     call get1(self, key, get)
   end function get
 
   logical function have(self, key)
-    class(assoc), intent(inout) :: self
+    class(assoc), intent(in) :: self
     character(*), intent(in) :: key
     character(:), allocatable :: dummy
     call get1(self, key, dummy, have)
   end function have
 
   subroutine get1(self, key, val, exist)
-    class(assoc), intent(inout) :: self
+    class(assoc), intent(in) :: self
     character(*), intent(in) :: key
     integer(1), allocatable :: bseq(:)
     character(:), allocatable :: val
@@ -445,7 +445,7 @@ contains
   end subroutine get1
 
   subroutine keys(self, v)
-    class(assoc), intent(inout) :: self
+    class(assoc), intent(in) :: self
     type(strarray), intent(out), allocatable :: v(:)
     integer, allocatable :: ar(:)
     integer :: n, i
