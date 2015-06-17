@@ -170,6 +170,7 @@ end module class_kv_arrays
 module assoc_critbit_trie
   use param_whole
   use util_string_array
+  use if_case_order
   use class_trie
   use class_kv_arrays
   implicit none
@@ -177,14 +178,16 @@ module assoc_critbit_trie
   type, public :: assoc
     type(trie) :: cbt
     type(kvarrs) :: kvs
+    procedure(corder), pointer, nopass :: cord => null()
   contains
-    procedure :: init, fin, put, get, del, have, keys, dump
-    procedure, private :: get_crit_digit, retrieve, is_same_key
+    procedure :: init, fin, put, get, del, have, keys, dump, case_order
+    procedure, private :: get_crit_digit, retrieve, is_same_key, reorder_case
   end type assoc
 
 contains
   subroutine init(self)
     class(assoc), intent(inout) :: self
+    self%cord => mesh_case
     call self%cbt%init(2*TRIE_SIZE)
     call self%kvs%init(TRIE_SIZE)
   end subroutine init
@@ -233,6 +236,21 @@ contains
     end do
   end subroutine
 
+  subroutine case_order(self, case_spec)
+    class(assoc), intent(inout) :: self
+    character(*), intent(in) :: case_spec
+    character(:), allocatable :: sp
+    sp = join(uc(split(case_spec)))
+    select case(sp)
+    case('ASCII')
+      self%cord => no_reorder
+    case('IGNORE')
+      self%cord => ignore_case
+    case default
+      self%cord => mesh_case
+    end select
+  end subroutine case_order
+
   integer function get_crit_digit(self, bseq, node)
     class(assoc), intent(inout) :: self
     integer(1), intent(in) :: bseq(:)
@@ -270,6 +288,12 @@ contains
     n=mod(cpos,8); if(0.eq.n) n=8
     test_cbit = btest(bseq(1+m), 8-n)
   end function test_cbit
+
+  elemental integer(1) function reorder_case(self, i)
+    class(assoc), intent(in) :: self
+    integer(1), intent(in) :: i
+    reorder_case = self%cord(i)
+  end function reorder_case
 
   recursive subroutine retrieve(self, bseq, node0, near, cpos)
     class(assoc), intent(inout) :: self
@@ -316,7 +340,7 @@ contains
     integer :: src, node, new, up, kvloc, cpos
     integer(1), allocatable :: bseq(:)
 
-    bseq = str_to_byte(k)
+    bseq = self%reorder_case(str_to_byte(k))
     call self%cbt%acquire(new)
     if(0.ne.self%cbt%t(self%cbt%root)%dat) then
       call self%retrieve(bseq,0,src,cpos)
@@ -362,7 +386,7 @@ contains
     integer(1), allocatable :: bseq(:)
     integer :: leaf, kvloc, up, upup, root, fellow, cpos
 
-    bseq = str_to_byte(key)
+    bseq = self%reorder_case(str_to_byte(key))
     root = self%cbt%root
     call self%retrieve(bseq,0,leaf,cpos)
     kvloc = self%cbt%t(leaf)%dat
@@ -414,7 +438,7 @@ contains
     character(:), allocatable :: val
     logical, optional :: exist
     integer :: near, kvloc, cpos
-    bseq = str_to_byte(key)
+    bseq = self%reorder_case(str_to_byte(key))
     call self%retrieve(bseq,0,near,cpos)
     kvloc = self%cbt%t(near)%dat
     if(present(exist)) exist = .false.

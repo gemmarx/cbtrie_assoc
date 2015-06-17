@@ -54,6 +54,51 @@ program main
 
   call myassoc%fin
 
+
+  call myassoc%init
+  call myassoc%put('aaa', '1')
+  call myassoc%put('aAa', '1')
+  call myassoc%put('Aaa', '1')
+  call myassoc%put('aab', '1')
+  call myassoc%put('aaB', '1')
+  print *, ""
+  print *, 'mesh(default) order'
+  call myassoc%keys(mykeys)
+  do i=1, size(mykeys)
+    print *, mykeys(i)%get()
+  end do
+  call myassoc%fin
+
+  call myassoc%init
+  call myassoc%case_order('ascii')
+  call myassoc%put('aaa', '1')
+  call myassoc%put('aAa', '1')
+  call myassoc%put('Aaa', '1')
+  call myassoc%put('aab', '1')
+  call myassoc%put('aaB', '1')
+  print *, ""
+  print *, 'ascii order'
+  call myassoc%keys(mykeys)
+  do i=1, size(mykeys)
+    print *, mykeys(i)%get()
+  end do
+  call myassoc%fin
+
+  call myassoc%init
+  call myassoc%case_order('ignore')
+  call myassoc%put('aaa', '1')
+  call myassoc%put('aAa', '1')
+  call myassoc%put('Aaa', '1')
+  call myassoc%put('aab', '1')
+  call myassoc%put('aaB', '1')
+  print *, ""
+  print *, 'case ignore'
+  call myassoc%keys(mykeys)
+  do i=1, size(mykeys)
+    print *, mykeys(i)%get()
+  end do
+  call myassoc%fin
+
 end program main
 
 

@@ -49,7 +49,7 @@ contains
     end do
   end function join
 
-  character function uc(ch)
+  pure elemental character function uc(ch)
     character, intent(in) :: ch
     integer :: i
     uc = ch
@@ -57,7 +57,7 @@ contains
     if(97.le.i .and. i.le.122) uc = achar(-32+i)
   end function uc
 
-  character function lc(ch)
+  pure elemental character function lc(ch)
     character, intent(in) :: ch
     integer :: i
     lc = ch
@@ -65,19 +65,30 @@ contains
     if(65.le.i .and. i.le.90) lc = achar(32+i)
   end function lc
 
-! reorder "A-Z" and "a-z"
-  function reorder_case(i) result(code)
-    integer, intent(in) :: i  !ascii code
-    integer :: code
-    code = i
+  pure integer(1) function no_reorder(i)
+    integer(1), intent(in) :: i  !ascii code
+    no_reorder = i
+  end function no_reorder
+
+  pure integer(1) function ignore_case(i)
+    integer(1), intent(in) :: i  !ascii code
+    ignore_case = i
+    if(97.le.i .and. i.le.122) ignore_case=-32+i
+  end function ignore_case
+
+! use mesh order of letters "A-Z" and "a-z"
+! such that "A a B b C c ..."
+  pure integer(1) function mesh_case(i)
+    integer(1), intent(in) :: i  !ascii code
+    mesh_case = i
     if(65.le.i .and. i.le.90) then
-      code = 65+2*(-65+i)
-      if(90.lt.code) code = 6+code
+      mesh_case = 65+2*(-65+i)
+      if(90.lt.mesh_case) mesh_case = 6+mesh_case
     else if(97.le.i .and. i.le.122) then
-      code = 66+2*(-65+(-32+i))
-      if(90.lt.code) code = 6+code
+      mesh_case = 66+2*(-65+(-32+i))
+      if(90.lt.mesh_case) mesh_case = 6+mesh_case
     end if
-  end function reorder_case
+  end function mesh_case
 
   character(8) function byte_to_bitchar(byte)
     integer(1), intent(in) :: byte
@@ -91,7 +102,7 @@ contains
     n = len_trim(str)
     allocate(seq(n))
     do i=1, n
-      seq(i) = reorder_case(iachar(str(i:i)))
+      seq(i) = iachar(str(i:i))
     end do
   end function str_to_byte
 
@@ -146,6 +157,14 @@ contains
   end function stocd
 end module util_string_array
 
+module if_case_order
+  abstract interface
+    pure function corder(i)
+      integer(1), intent(in) :: i
+      integer(1) :: corder
+    end function corder
+  end interface
+end module if_case_order
 
 
 
