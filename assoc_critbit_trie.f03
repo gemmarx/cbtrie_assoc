@@ -2,6 +2,8 @@
 module param_whole
   implicit none
   integer, parameter :: TRIE_SIZE=32  !initial number of key-value pairs
+  character(10), parameter :: DEFAULT_CASE_ORDER='MESH'  !default sort order of keys
+                           !'MESH', 'ASCII' or 'IGNORE' can be selected
 end module param_whole
 
 module class_resource_pool
@@ -62,7 +64,7 @@ module class_trie
     type(node), allocatable :: t(:)
     integer :: root
   contains
-    procedure :: init, expand, release, part_smallest
+    procedure :: init, expand, part_smallest
   end type trie
 
 contains
@@ -85,16 +87,6 @@ contains
     self%t(1:n) = tmp
     call self%respool%expand
   end subroutine expand
-
-  subroutine release(self, idx)
-    class(trie), intent(inout) :: self
-    integer, intent(in) :: idx
-    self%t(idx)%n0 = 0
-    self%t(idx)%n1 = 0
-    self%t(idx)%up = 0
-    self%t(idx)%dat = 0
-    call self%respool%release(idx)
-  end subroutine release
 
   recursive integer function part_smallest(self, node)
     class(trie), intent(inout) :: self
@@ -180,16 +172,32 @@ module assoc_critbit_trie
     type(kvarrs) :: kvs
     procedure(corder), pointer, nopass :: cord => null()
   contains
-    procedure :: init, fin, put, get, del, have, keys, dump, case_order
+    procedure :: init, fin, put, get, del, have, keys, dump
     procedure, private :: get_crit_digit, retrieve, is_same_key, reorder_case
   end type assoc
 
 contains
-  subroutine init(self)
+  subroutine init(self, case_order)
     class(assoc), intent(inout) :: self
-    self%cord => mesh_case
+    character(*), intent(in), optional :: case_order
+    character(:), allocatable :: sp
+
     call self%cbt%init(2*TRIE_SIZE)
     call self%kvs%init(TRIE_SIZE)
+
+    sp = DEFAULT_CASE_ORDER
+    if(present(case_order)) sp = case_order
+    sp = join(uc(split(sp)))
+    select case(sp)
+    case('ASCII')
+      self%cord => no_reorder
+    case('MESH')
+      self%cord => mesh_case
+    case('IGNORE')
+      self%cord => ignore_case
+    case default
+      self%cord => no_reorder
+    end select
   end subroutine init
 
   subroutine fin(self)
@@ -235,21 +243,6 @@ contains
       print *, ""
     end do
   end subroutine
-
-  subroutine case_order(self, case_spec)
-    class(assoc), intent(inout) :: self
-    character(*), intent(in) :: case_spec
-    character(:), allocatable :: sp
-    sp = join(uc(split(case_spec)))
-    select case(sp)
-    case('ASCII')
-      self%cord => no_reorder
-    case('IGNORE')
-      self%cord => ignore_case
-    case default
-      self%cord => mesh_case
-    end select
-  end subroutine case_order
 
   integer function get_crit_digit(self, bseq, node)
     class(assoc), intent(inout) :: self
@@ -346,7 +339,9 @@ contains
       call self%retrieve(bseq,0,src,cpos)
       if(self%is_same_key(bseq, src)) then
         call self%cbt%release(new)
-        self%kvs%v(self%cbt%t(src)%dat)%c = split(v)
+        kvloc = self%cbt%t(src)%dat
+        call self%kvs%sk(kvloc)%put(k)
+        call self%kvs%v(kvloc)%put(v)
         return
       end if
       call self%cbt%acquire(node)
@@ -375,9 +370,9 @@ contains
     self%cbt%t(new)%n0 = 0
     self%cbt%t(new)%n1 = 0
     self%cbt%t(new)%dat = kvloc
-    self%kvs%sk(kvloc)%c = split(k)
     self%kvs%bk(kvloc)%c = bseq
-    self%kvs%v(kvloc)%c = split(v)
+    call self%kvs%sk(kvloc)%put(k)
+    call self%kvs%v(kvloc)%put(v)
   end subroutine put
 
   subroutine del(self, key)

@@ -55,7 +55,7 @@ program main
   call myassoc%fin
 
 
-  call myassoc%init
+  call myassoc%init('mesh')
   call myassoc%put('aaa', '1')
   call myassoc%put('aAa', '1')
   call myassoc%put('Aaa', '1')
@@ -69,8 +69,7 @@ program main
   end do
   call myassoc%fin
 
-  call myassoc%init
-  call myassoc%case_order('ascii')
+  call myassoc%init('ascii')
   call myassoc%put('aaa', '1')
   call myassoc%put('aAa', '1')
   call myassoc%put('Aaa', '1')
@@ -84,8 +83,7 @@ program main
   end do
   call myassoc%fin
 
-  call myassoc%init
-  call myassoc%case_order('ignore')
+  call myassoc%init('ignore')
   call myassoc%put('aaa', '1')
   call myassoc%put('aAa', '1')
   call myassoc%put('Aaa', '1')
