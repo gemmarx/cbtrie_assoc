@@ -210,7 +210,7 @@ module assoc_critbit_trie
     type(kvarrs) :: kvs
     procedure(corder), pointer, nopass :: cord => null()
   contains
-    procedure :: init, fin, put, get, del, have, keys, dump, next, prev
+    procedure :: init, fin, put, get, del, have, keys, dump, next, prev, first, last
     procedure, private :: get_crit_digit, retrieve, is_same_key, reorder_case
   end type assoc
 
@@ -545,6 +545,28 @@ contains
     if(0.eq.node) return
     prev = join(self%kvs%sk(self%cbt%t(node)%dat)%c)
   end function prev
+
+  function first(self)
+    class(assoc), intent(in) :: self
+    character(:), allocatable :: first
+    integer :: root, node
+    root = self%cbt%root
+    first = ""
+    if(0.eq.root) return
+    node = self%cbt%part_smallest(root)
+    first = join(self%kvs%sk(self%cbt%t(node)%dat)%c)
+  end function first
+
+  function last(self)
+    class(assoc), intent(in) :: self
+    character(:), allocatable :: last
+    integer :: root, node
+    root = self%cbt%root
+    last = ""
+    if(0.eq.root) return
+    node = self%cbt%part_greatest(root)
+    last = join(self%kvs%sk(self%cbt%t(node)%dat)%c)
+  end function last
 end module assoc_critbit_trie
 
 
