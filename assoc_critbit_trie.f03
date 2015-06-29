@@ -2,7 +2,7 @@
 module param_whole
   implicit none
   integer, parameter :: TRIE_SIZE=32  !initial number of key-value pairs
-  character(*), parameter :: DEFAULT_CASE_ORDER='MESH'  !default sort order of keys
+  character(*), parameter :: DEFAULT_CASE_ORDER='ASCII' !default sort order of keys
                            !'MESH', 'ASCII' or 'IGNORE' can be selected.
 end module param_whole
 
@@ -64,7 +64,7 @@ module class_trie
     type(node), allocatable :: t(:)
     integer :: root
   contains
-    procedure :: init, expand, part_smallest
+    procedure :: init, expand, part_smallest, part_greatest, next, prev
   end type trie
 
 contains
@@ -97,6 +97,44 @@ contains
       part_smallest = self%part_smallest(self%t(node)%n0)
     end if
   end function part_smallest
+
+  recursive integer function part_greatest(self, node)
+    class(trie), intent(in) :: self
+    integer, intent(in) :: node
+    if(0.le.self%t(node)%dat) then
+      part_greatest = node
+    else
+      part_greatest = self%part_greatest(self%t(node)%n1)
+    end if
+  end function part_greatest
+
+  recursive integer function next(self, node)
+    class(trie), intent(in) :: self
+    integer, intent(in) :: node
+    integer :: up
+    next=0
+    if(node.eq.self%root) return
+    up = self%t(node)%up
+    if(node.eq.self%t(up)%n0) then
+      next = self%part_smallest(self%t(up)%n1)
+    else
+      next = self%next(up)
+    end if
+  end function next
+
+  recursive integer function prev(self, node)
+    class(trie), intent(in) :: self
+    integer, intent(in) :: node
+    integer :: up
+    prev=0
+    if(node.eq.self%root) return
+    up = self%t(node)%up
+    if(node.eq.self%t(up)%n1) then
+      prev = self%part_greatest(self%t(up)%n0)
+    else
+      prev = self%prev(up)
+    end if
+  end function prev
 end module class_trie
 
 module class_kv_arrays
@@ -162,7 +200,7 @@ end module class_kv_arrays
 module assoc_critbit_trie
   use param_whole
   use util_string_array
-  use if_case_order
+  use intf_case_order
   use class_trie
   use class_kv_arrays
   implicit none
@@ -172,7 +210,7 @@ module assoc_critbit_trie
     type(kvarrs) :: kvs
     procedure(corder), pointer, nopass :: cord => null()
   contains
-    procedure :: init, fin, put, get, del, have, keys, dump
+    procedure :: init, fin, put, get, del, have, keys, dump, next, prev
     procedure, private :: get_crit_digit, retrieve, is_same_key, reorder_case
   end type assoc
 
@@ -208,7 +246,7 @@ contains
   subroutine dump(self)
     class(assoc), intent(inout) :: self
     integer, allocatable :: ar(:)
-    integer(1), allocatable :: br(:)
+    byte, allocatable :: br(:)
     integer :: n, i, j, g(5), cell
 
     write(*, '(a)', advance='no'), 'root node:  '
@@ -246,11 +284,11 @@ contains
 
   integer function get_crit_digit(self, bseq, node)
     class(assoc), intent(in) :: self
-    integer(1), intent(in) :: bseq(:)
+    byte, intent(in) :: bseq(:)
     integer, intent(in) :: node
-    integer(1), allocatable :: cseq(:)
+    byte, allocatable :: cseq(:)
     integer :: small, kvloc, bz, cz, i, k
-    integer(1) :: b, c, x
+    byte :: b, c, x
     small = self%cbt%part_smallest(node)
     kvloc = self%cbt%t(small)%dat
     cseq  = self%kvs%bk(kvloc)%c
@@ -270,7 +308,7 @@ contains
   end function get_crit_digit
 
   logical function test_cbit(bseq, cpos)
-    integer(1), intent(in) :: bseq(:)
+    byte, intent(in) :: bseq(:)
     integer, intent(in) :: cpos
     integer :: m, n
     if(cpos.gt.8*size(bseq)) then
@@ -282,17 +320,18 @@ contains
     test_cbit = btest(bseq(1+m), 8-n)
   end function test_cbit
 
-  elemental integer(1) function reorder_case(self, i)
+  elemental byte function reorder_case(self, i)
     class(assoc), intent(in) :: self
-    integer(1), intent(in) :: i
+    byte, intent(in) :: i
     reorder_case = self%cord(i)
   end function reorder_case
 
   recursive subroutine retrieve(self, bseq, node0, near, cpos)
     class(assoc), intent(in) :: self
-    integer(1), intent(in) :: bseq(:)
+    byte, intent(in) :: bseq(:)
     integer, intent(in) :: node0
-    integer, intent(out) :: near, cpos
+    integer, intent(out) :: near
+    integer, intent(out) :: cpos
     integer :: node, crit, next
     if(0.eq.node0) then
       node = self%cbt%root
@@ -315,9 +354,9 @@ contains
 
   logical function is_same_key(self, bseq, node)
     class(assoc), intent(in) :: self
-    integer(1), intent(in) :: bseq(:)
+    byte, intent(in) :: bseq(:)
     integer, intent(in) :: node
-    integer(1), allocatable :: cseq(:)
+    byte, allocatable :: cseq(:)
     integer :: w
     is_same_key = .false.
     w = self%cbt%t(node)%dat
@@ -331,7 +370,7 @@ contains
     class(assoc), intent(inout) :: self
     character(*), intent(in) :: k, v
     integer :: src, node, new, up, kvloc, cpos
-    integer(1), allocatable :: bseq(:)
+    byte, allocatable :: bseq(:)
 
     bseq = self%reorder_case(str_to_byte(k))
     call self%cbt%acquire(new)
@@ -378,7 +417,7 @@ contains
   subroutine del(self, key)
     class(assoc), intent(inout) :: self
     character(*), intent(in) :: key
-    integer(1), allocatable :: bseq(:)
+    byte, allocatable :: bseq(:)
     integer :: leaf, kvloc, up, upup, root, fellow, cpos
 
     bseq = self%reorder_case(str_to_byte(key))
@@ -416,31 +455,29 @@ contains
     class(assoc), intent(in) :: self
     character(*), intent(in) :: key
     character(:), allocatable :: get
-    call get1(self, key, get)
+    call get1(self, key, val=get)
   end function get
 
   logical function have(self, key)
     class(assoc), intent(in) :: self
     character(*), intent(in) :: key
-    character(:), allocatable :: dummy
-    call get1(self, key, dummy, have)
+    call get1(self, key, have)
   end function have
 
-  subroutine get1(self, key, val, exist)
+  subroutine get1(self, key, exist, val)
     class(assoc), intent(in) :: self
     character(*), intent(in) :: key
-    integer(1), allocatable :: bseq(:)
-    character(:), allocatable :: val
+    byte, allocatable :: bseq(:)
     logical, optional :: exist
-    integer :: near, kvloc, cpos
+    character(:), allocatable, optional :: val
+    integer :: near, kvloc, dummy
     bseq = self%reorder_case(str_to_byte(key))
-    call self%retrieve(bseq,0,near,cpos)
+    call self%retrieve(bseq,0,near,dummy)
     kvloc = self%cbt%t(near)%dat
     if(present(exist)) exist = .false.
-    if(0.ge.kvloc) return
-    if(all(bseq.eq.self%kvs%bk(kvloc)%c)) then
+    if(self%is_same_key(bseq, near)) then
       if(present(exist)) exist = .true.
-      val = join(self%kvs%v(kvloc)%c)
+      if(present(val)) val = join(self%kvs%v(kvloc)%c)
     end if
   end subroutine get1
 
@@ -472,6 +509,42 @@ contains
       call push_key(cbt, cbt%t(k)%n1, ar, i, all_node)
     end if
   end subroutine push_key
+
+  function next(self, key)
+    class(assoc), intent(in) :: self
+    character(*), intent(in) :: key
+    character(:), allocatable :: next
+    byte, allocatable :: bseq(:)
+    integer :: node, near, cpos
+    bseq = self%reorder_case(str_to_byte(key))
+    call self%retrieve(bseq,0,near,cpos)
+    if(self%is_same_key(bseq, near) .or. test_cbit(bseq, cpos)) then
+      node = self%cbt%next(near)
+    else
+      node = self%cbt%part_smallest(near)
+    end if
+    next=""
+    if(0.eq.node) return
+    next = join(self%kvs%sk(self%cbt%t(node)%dat)%c)
+  end function next
+
+  function prev(self, key)
+    class(assoc), intent(in) :: self
+    character(*), intent(in) :: key
+    character(:), allocatable :: prev
+    byte, allocatable :: bseq(:)
+    integer :: node, near, cpos
+    bseq = self%reorder_case(str_to_byte(key))
+    call self%retrieve(bseq,0,near,cpos)
+    if(self%is_same_key(bseq, near) .or. .not.test_cbit(bseq, cpos)) then
+      node = self%cbt%prev(near)
+    else
+      node = self%cbt%part_greatest(near)
+    end if
+    prev=""
+    if(0.eq.node) return
+    prev = join(self%kvs%sk(self%cbt%t(node)%dat)%c)
+  end function prev
 end module assoc_critbit_trie
 
 

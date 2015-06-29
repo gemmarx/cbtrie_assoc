@@ -55,20 +55,6 @@ program main
   call myassoc%fin
 
 
-  call myassoc%init('mesh')
-  call myassoc%put('aaa', '1')
-  call myassoc%put('aAa', '1')
-  call myassoc%put('Aaa', '1')
-  call myassoc%put('aab', '1')
-  call myassoc%put('aaB', '1')
-  print *, ""
-  print *, 'mesh(default) order'
-  call myassoc%keys(mykeys)
-  do i=1, size(mykeys)
-    print *, mykeys(i)%get()
-  end do
-  call myassoc%fin
-
   call myassoc%init('ascii')
   call myassoc%put('aaa', '1')
   call myassoc%put('aAa', '1')
@@ -76,7 +62,21 @@ program main
   call myassoc%put('aab', '1')
   call myassoc%put('aaB', '1')
   print *, ""
-  print *, 'ascii order'
+  print *, 'ascii(default) order'
+  call myassoc%keys(mykeys)
+  do i=1, size(mykeys)
+    print *, mykeys(i)%get()
+  end do
+  call myassoc%fin
+
+  call myassoc%init('mesh')
+  call myassoc%put('aaa', '1')
+  call myassoc%put('aAa', '1')
+  call myassoc%put('Aaa', '1')
+  call myassoc%put('aab', '1')
+  call myassoc%put('aaB', '1')
+  print *, ""
+  print *, 'mesh(zip) order'
   call myassoc%keys(mykeys)
   do i=1, size(mykeys)
     print *, mykeys(i)%get()

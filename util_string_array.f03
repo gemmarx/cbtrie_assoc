@@ -13,7 +13,7 @@ module util_string_array
   end type strarray
 
   type bytearray
-    integer(1), allocatable :: c(:)
+    byte, allocatable :: c(:)
   end type bytearray
 
   private :: put_str, get_str
@@ -65,21 +65,21 @@ contains
     if(65.le.i .and. i.le.90) lc = achar(32+i)
   end function lc
 
-  pure integer(1) function no_reorder(i)
-    integer(1), intent(in) :: i  !ascii code
+  pure byte function no_reorder(i)
+    byte, intent(in) :: i  !ascii code
     no_reorder = i
   end function no_reorder
 
-  pure integer(1) function ignore_case(i)
-    integer(1), intent(in) :: i  !ascii code
+  pure byte function ignore_case(i)
+    byte, intent(in) :: i  !ascii code
     ignore_case = i
     if(97.le.i .and. i.le.122) ignore_case=-32+i
   end function ignore_case
 
 ! use mesh order of letters "A-Z" and "a-z"
 ! such that "A a B b C c ..."
-  pure integer(1) function mesh_case(i)
-    integer(1), intent(in) :: i  !ascii code
+  pure byte function mesh_case(i)
+    byte, intent(in) :: i  !ascii code
     mesh_case = i
     if(65.le.i .and. i.le.90) then
       mesh_case = 65+2*(-65+i)
@@ -91,13 +91,13 @@ contains
   end function mesh_case
 
   character(8) function byte_to_bitchar(byte)
-    integer(1), intent(in) :: byte
+    byte, intent(in) :: byte
     write(byte_to_bitchar, '(b8.8)') byte
   end function byte_to_bitchar
 
   function str_to_byte(str) result(seq)
     character(*), intent(in) :: str
-    integer(1), allocatable :: seq(:)
+    byte, allocatable :: seq(:)
     integer :: i, n
     n = len_trim(str)
     allocate(seq(n))
@@ -157,14 +157,14 @@ contains
   end function stocd
 end module util_string_array
 
-module if_case_order
+module intf_case_order
   abstract interface
     pure function corder(i)
-      integer(1), intent(in) :: i
-      integer(1) :: corder
+      byte, intent(in) :: i
+      byte :: corder
     end function corder
   end interface
-end module if_case_order
+end module intf_case_order
 
 
 
