@@ -3,7 +3,7 @@ module param_whole
   implicit none
   integer, parameter :: TRIE_SIZE=32  !initial number of key-value pairs
   character(*), parameter :: DEFAULT_CASE_ORDER='ASCII' !default sort order of keys
-                           !'MESH', 'ASCII' or 'IGNORE' can be selected.
+                           !'ASCII', 'ZIP(=MESH)' or 'IGNORE' can be selected.
 end module param_whole
 
 module class_resource_pool
@@ -229,7 +229,7 @@ contains
     select case(sp)
     case('ASCII')
       self%cord => no_reorder
-    case('MESH')
+    case('MESH', 'ZIP')
       self%cord => mesh_case
     case('IGNORE')
       self%cord => ignore_case
@@ -294,12 +294,12 @@ contains
     cseq  = self%kvs%bk(kvloc)%c
     bz=size(bseq); cz=size(cseq)
     do k=1, max(bz, cz)
-      b=bseq(k); if(bz.lt.k) b=0
-      c=cseq(k); if(cz.lt.k) c=0
+      b=0; if(bz.ge.k) b=bseq(k)
+      c=0; if(cz.ge.k) c=cseq(k)
       x = ieor(b,c)
-      do i=1, 8
-        if(btest(x, 8-i)) then
-          get_crit_digit = 8*(-1+k)+i
+      do i=7, 0, -1
+        if(btest(x,i)) then
+          get_crit_digit = -i + 8*k
           return
         end if
       end do
@@ -310,14 +310,15 @@ contains
   logical function test_cbit(bseq, cpos)
     byte, intent(in) :: bseq(:)
     integer, intent(in) :: cpos
-    integer :: m, n
+    integer :: p, m, n
     if(cpos.gt.8*size(bseq)) then
       test_cbit = .false.
       return
     end if
-    m=(-1+cpos)/8
-    n=mod(cpos,8); if(0.eq.n) n=8
-    test_cbit = btest(bseq(1+m), 8-n)
+    p = -1 + cpos
+    m = 1 + p/8
+    n = 7 -mod(p,8)
+    test_cbit = btest(bseq(m),n)
   end function test_cbit
 
   elemental byte function reorder_case(self, i)
@@ -326,13 +327,13 @@ contains
     reorder_case = self%cord(i)
   end function reorder_case
 
-  recursive subroutine retrieve(self, bseq, node0, near, cpos)
+  recursive subroutine retrieve(self, bseq, node0, near, cpos0)
     class(assoc), intent(in) :: self
     byte, intent(in) :: bseq(:)
     integer, intent(in) :: node0
     integer, intent(out) :: near
-    integer, intent(out) :: cpos
-    integer :: node, crit, next
+    integer, intent(out), optional :: cpos0
+    integer :: node, crit, next, cpos
     if(0.eq.node0) then
       node = self%cbt%root
     else
@@ -342,6 +343,7 @@ contains
     crit = -self%cbt%t(node)%dat
     if(0.eq.crit) return
     cpos = get_crit_digit(self, bseq, node)
+    if(present(cpos0)) cpos0 = cpos
     if(0.gt.crit) return
     if(0.lt.cpos .and. cpos.lt.crit) return
     if(test_cbit(bseq, crit)) then
@@ -349,7 +351,7 @@ contains
     else
       next = self%cbt%t(node)%n0
     end if
-    call self%retrieve(bseq, next, near, cpos)
+    call self%retrieve(bseq, next, near, cpos0)
   end subroutine retrieve
 
   logical function is_same_key(self, bseq, node)
@@ -372,6 +374,7 @@ contains
     integer :: src, node, new, up, kvloc, cpos
     byte, allocatable :: bseq(:)
 
+    if("".eq.trim(k)) return
     bseq = self%reorder_case(str_to_byte(k))
     call self%cbt%acquire(new)
     if(0.ne.self%cbt%t(self%cbt%root)%dat) then
@@ -470,9 +473,9 @@ contains
     byte, allocatable :: bseq(:)
     logical, optional :: exist
     character(:), allocatable, optional :: val
-    integer :: near, kvloc, dummy
+    integer :: near, kvloc
     bseq = self%reorder_case(str_to_byte(key))
-    call self%retrieve(bseq,0,near,dummy)
+    call self%retrieve(bseq,0,near)
     kvloc = self%cbt%t(near)%dat
     if(present(exist)) exist = .false.
     if(self%is_same_key(bseq, near)) then

@@ -55,14 +55,14 @@ program main
 
   print *, myassoc%first()
   print *, myassoc%next(myassoc%first())
-  print *, myassoc%next('a')
+  print *, myassoc%next("")
   print *, myassoc%next('aa')
   print *, myassoc%next('real_num')
   print *, myassoc%next('多バイト文')
   print *, myassoc%next('多バイト文字')
   print *, myassoc%next('多バイト文字文')
 
-  print *, myassoc%prev('a')
+  print *, myassoc%prev("")
   print *, myassoc%prev('aa')
   print *, myassoc%prev('real_num')
   print *, myassoc%prev('多バイト文')

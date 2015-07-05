@@ -109,7 +109,7 @@ contains
 ! Functions named "*to*" are converters between numeric types and character string
   function ntos(num) result(str)
     class(*), intent(in) :: num
-    character :: fix*255
+    character :: fix*250
     character(:), allocatable :: str
     select type(num)
     type is(integer)
