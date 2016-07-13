@@ -72,7 +72,7 @@ program main
   print *, myassoc%prev(myassoc%last())
 
 
-  call myassoc%fin
+  call myassoc%drop
 
 
   call myassoc%init('ascii')
@@ -87,7 +87,7 @@ program main
   do i=1, size(mykeys)
     print *, mykeys(i)%get()
   end do
-  call myassoc%fin
+  call myassoc%drop
 
   call myassoc%init('mesh')
   call myassoc%put('aaa', '1')
@@ -101,7 +101,7 @@ program main
   do i=1, size(mykeys)
     print *, mykeys(i)%get()
   end do
-  call myassoc%fin
+  call myassoc%drop
 
   call myassoc%init('ignore')
   call myassoc%put('aaa', '1')
@@ -115,7 +115,7 @@ program main
   do i=1, size(mykeys)
     print *, mykeys(i)%get()
   end do
-  call myassoc%fin
+  call myassoc%drop
 
 end program main
 

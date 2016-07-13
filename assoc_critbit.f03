@@ -71,7 +71,14 @@ contains
   subroutine init(self, num)
     class(trie), intent(inout) :: self
     integer, intent(in) :: num
+    integer :: i
     allocate(self%t(num))
+    do i=1,num
+      self%t(i)%n0 = 0
+      self%t(i)%n1 = 0
+      self%t(i)%up = 0
+      self%t(i)%dat = 0
+    end do
     self%root = 1
     call self%respool%init(num)
   end subroutine init
@@ -210,7 +217,7 @@ module assoc_critbit_trie
     type(kvarrs) :: kvs
     procedure(corder), pointer, nopass :: cord => null()
   contains
-    procedure :: init, fin, put, get, del, have, keys, dump, next, prev, first, last
+    procedure :: init, drop, put, get, del, have, keys, dump, next, prev, first, last
     procedure, private :: get_crit_digit, retrieve, is_same_key, reorder_case
   end type assoc
 
@@ -238,10 +245,10 @@ contains
     end select
   end subroutine init
 
-  subroutine fin(self)
+  subroutine drop(self)
     class(assoc), intent(inout) :: self
     deallocate(self%cbt%que, self%cbt%t, self%kvs%que, self%kvs%sk, self%kvs%bk, self%kvs%v)
-  end subroutine fin
+  end subroutine drop
 
   subroutine dump(self)
     class(assoc), intent(inout) :: self
