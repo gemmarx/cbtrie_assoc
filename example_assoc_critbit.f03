@@ -1,122 +1,79 @@
 
 program main
-  use util_string_array
-  use assoc_critbit_trie
-  implicit none
-  integer :: i
-  type(assoc) :: myassoc
-  type(strarray), allocatable :: mykeys(:)
+    use class_typack
+    use assoc_critbit_trie
+    implicit none
+    integer :: i
+    real :: r
+    type(assoc) :: kvs
+    type(typack) :: tpk
+    type(typack), allocatable :: ks(:)
 
+    call kvs%init
+    call kvs%put('aaaaaaaaa', 'foofoobaz')
+    call kvs%put('aaaaaa', 'foobaz')
+    call kvs%put('aaaaaaaa', 'foofoobar')
+    call kvs%put('多バイト文字', 'ＴＯ ＥＲＡＳＥ')
+    call kvs%del('aaaaaa')
+    call kvs%put('aa', 'bar')
+    call kvs%put('aba', 'baz')
+    call kvs%del('多バイト文字')
+    call kvs%put('a', 'foo')
+    call kvs%put('aaaaa', 'foobar')
+    call kvs%put('多バイト文字', '日式漢字')
+    call kvs%put('aaaaaaa', 'foofoofoo')
+    call kvs%del('a')
+    call kvs%put('aaaaaaaaaa', 'foobarfoo')
+    call kvs%put('aaaa', 'foofoo')
 
-  call myassoc%init
-  call myassoc%put('aaaaaaaaa', 'foofoobaz')
-  call myassoc%put('aaaaaa', 'foobaz')
-  call myassoc%put('aaaaaaaa', 'foofoobar')
-  call myassoc%put('多バイト文字', 'ＴＯ ＥＲＡＳＥ')
-  call myassoc%del('aaaaaa')
-  call myassoc%put('aa', 'bar')
-  call myassoc%put('aba', 'baz')
-  call myassoc%del('多バイト文字')
-  call myassoc%put('a', 'foo')
-  call myassoc%put('aaaaa', 'foobar')
-  call myassoc%put('多バイト文字', '日式漢字')
-  call myassoc%put('aaaaaaa', 'foofoofoo')
-  call myassoc%del('a')
-  call myassoc%put('aaaaaaaaaa', 'foobarfoo')
-  call myassoc%put('aaaa', 'foofoo')
+    call kvs%put(88, 3.14)
+    call kvs%put(1e0, (1.732d0, 2.236d0))
 
-  call myassoc%put('real_num', ntos(5.12d-2))
-  call myassoc%put('complex_num', ntos((1.2, 3.4)))
+    print *, kvs%get(88)
+    call tpk%tpack(88)
+    call kvs%get_num(tpk, r)
+    print *, r
 
-  call myassoc%keys(mykeys)
-  do i=1, size(mykeys)
-    print *, mykeys(i)%get()
-  end do
+    call kvs%keys(ks)
+    do i=1, size(ks)
+        print *, ks(i)%get_str(), &
+            ':  ', kvs%get_type(ks(i)), &
+            '  =>  ', kvs%get(ks(i))
+    end do
 
+    print *, kvs%have('aa')
+    print *, kvs%have('aaa')
+    print *, kvs%have('uuu')
+    print *, kvs%get('aa')
+    call kvs%put('aa', 'uuura')
+    print *, kvs%get('aa')
+    call kvs%del('aa')
+    print *, kvs%get('aa')
+    call kvs%put('aa', 'ooora')
+    print *, kvs%get('aa')
+    call kvs%put('aaa', 'toctoc')
+    print *, kvs%get('aaa')
+    print *, kvs%get('多バイト文字')
 
-  print *, myassoc%have('aa')
-  print *, myassoc%have('aaa')
-  print *, myassoc%have('uuu')
-  print *, myassoc%get('aa')
-  call myassoc%put('aa', 'uuura')
-  print *, myassoc%get('aa')
-  call myassoc%del('aa')
-  print *, myassoc%get('aa')
-  call myassoc%put('aa', 'ooora')
-  print *, myassoc%get('aa')
-  call myassoc%put('aaa', 'toctoc')
-  print *, myassoc%get('aaa')
-  print *, myassoc%get('多バイト文字')
+    print *, kvs%first()
+    print *, kvs%next(kvs%first())
+    print *, kvs%next("")
+    print *, kvs%next('aa')
+    print *, kvs%next('real_num')
+    print *, kvs%next('多バイト文')
+    print *, kvs%next('多バイト文字')
+    print *, kvs%next('多バイト文字文')
 
+    print *, kvs%prev("")
+    print *, kvs%prev('aa')
+    print *, kvs%prev('real_num')
+    print *, kvs%prev('多バイト文')
+    print *, kvs%prev('多バイト文字')
+    print *, kvs%prev('多バイト文字文')
+    print *, kvs%last()
+    print *, kvs%prev(kvs%last())
 
-  print *, stodp(myassoc%get('real_num'))
-  print *, stocp(myassoc%get('complex_num'))
-
-
-  print *, myassoc%first()
-  print *, myassoc%next(myassoc%first())
-  print *, myassoc%next("")
-  print *, myassoc%next('aa')
-  print *, myassoc%next('real_num')
-  print *, myassoc%next('多バイト文')
-  print *, myassoc%next('多バイト文字')
-  print *, myassoc%next('多バイト文字文')
-
-  print *, myassoc%prev("")
-  print *, myassoc%prev('aa')
-  print *, myassoc%prev('real_num')
-  print *, myassoc%prev('多バイト文')
-  print *, myassoc%prev('多バイト文字')
-  print *, myassoc%prev('多バイト文字文')
-  print *, myassoc%last()
-  print *, myassoc%prev(myassoc%last())
-
-
-  call myassoc%drop
-
-
-  call myassoc%init('ascii')
-  call myassoc%put('aaa', '1')
-  call myassoc%put('aAa', '1')
-  call myassoc%put('Aaa', '1')
-  call myassoc%put('aab', '1')
-  call myassoc%put('aaB', '1')
-  print *, ""
-  print *, 'ascii(default) order'
-  call myassoc%keys(mykeys)
-  do i=1, size(mykeys)
-    print *, mykeys(i)%get()
-  end do
-  call myassoc%drop
-
-  call myassoc%init('mesh')
-  call myassoc%put('aaa', '1')
-  call myassoc%put('aAa', '1')
-  call myassoc%put('Aaa', '1')
-  call myassoc%put('aab', '1')
-  call myassoc%put('aaB', '1')
-  print *, ""
-  print *, 'mesh(zip) order'
-  call myassoc%keys(mykeys)
-  do i=1, size(mykeys)
-    print *, mykeys(i)%get()
-  end do
-  call myassoc%drop
-
-  call myassoc%init('ignore')
-  call myassoc%put('aaa', '1')
-  call myassoc%put('aAa', '1')
-  call myassoc%put('Aaa', '1')
-  call myassoc%put('aab', '1')
-  call myassoc%put('aaB', '1')
-  print *, ""
-  print *, 'case ignore'
-  call myassoc%keys(mykeys)
-  do i=1, size(mykeys)
-    print *, mykeys(i)%get()
-  end do
-  call myassoc%drop
+    call kvs%drop
 
 end program main
-
 

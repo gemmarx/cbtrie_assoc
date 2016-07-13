@@ -1,6 +1,9 @@
-cbtrie_assoc
---
-An associative array based on [Critbit-Trie](https://cr.yp.to/critbit.html) in Fortran 2003.
+Assoc Critbit Trie
+==
+An associative array based on [Critbit-Tree Trie](https://cr.yp.to/critbit.html) in Fortran 2003.
+- GFortran (>4.9) is required
+- Character string or numeric primitive data (integer/real/complex) can be used as keys or values.
+The way to deal with numbers is, however, bit complicated.
 - This project has been started to learn Fortran 2003's new facilities.
 It may not be efficient enough to use practically.
 
@@ -11,8 +14,9 @@ Hash cannot keep the order of keys.
 Btree is to take a time depending on the number of keys to do search operation.
 Crit-Bit tree is a trie system which has a good balance against the problems.
 
-#### Usage
-```Fortran:test.f03
+## Usage
+##### test.f03
+```FORTRAN
 program main
     use assoc_critbit_trie
     implicit none
@@ -27,74 +31,104 @@ program main
 end program main
 ```
 
-```shell
-% gfortran -o test string_array.f03 assoc_critbit.f03 test.f03
-% ./test
+```bash
+$ gfortran -o test converter.f03 typack.f03 assoc_critbit.f03 test.f03
+$ ./test
  assoc
 ```
 
-#### Methods of Type(assoc) in assoc_critbit_trie module
-###### Subroutines
-- call init  
+## Methods of Type(assoc) in assoc_critbit_trie module
+### Subroutines of type(assoc) :: kvs
+- call kvs%init  
 Initializer
-- call drop  
+- call kvs%drop  
 Destructor
-- call put(key, value)  
+- call kvs%put(key, value)  
 Register a pair of key-value.
-- call del(key)  
+- call kvs%del(key)  
 Delete a pair specified by the key.
-- call keys(handle)  
+- call kvs%keys(ks)  
 Give all keys.
-'handle' is an array of type(strarray) in util_string_array module.
+'ks' is an array of type(typack) in class_typack module.
+- call kvs%get_num(key, value)  
+Give the value as a form of numeric type.
+'value' must have a right type.
 
-###### Functions
-- get(key)  
+### Functions of type(assoc) :: kvs
+- kvs%get(key)  
 Give the value binding to the key.
-- have(key)  
+- kvs%have(key)  
 Ask if the key is in the assoc.
-- first()  
+- kvs%first()  
 Give the first key according to ascii order.
-- last()  
+- kvs%last()  
 Give the last key according to ascii order.
-- next(str)  
+- kvs%next(str)  
 Give the key following to 'str' according to ascii order.
 str does not have to exist in the assoc.
-- prev(str)  
+- kvs%prev(str)  
 Give the key followed by 'str' according to ascii order.
 str does not have to exist in the assoc.
+- kvs%get_type(key)  
+Give a type information of value bound to 'key'
+- kvs%nelm()  
+Give the number of psirs registerd in.
 
-#### Usage2
+## Usage2
 Traverse all the keys of the assoc
-```Fortran:test2.f03
+##### test2.f03
+```FORTRAN
 program main
-    use util_string_array
+    use class_typack
     use assoc_critbit_trie
     implicit none
 
     integer :: i
-    character(:), allocatable :: key
     type(assoc) :: kvs
-    type(strarray), allocatable :: hd(:)
+    type(typack), allocatable :: ks(:)
     
     call kvs%init
     call kvs%put('foo', 'value1')
     call kvs%put('bar', 'value2')
     call kvs%put('baz', 'value3')
 
-    call kvs%keys(hd)
-    do i=1, size(hd)
-        key = he(i)%get()
-        print *, key, ':  ', kvs%get(key)
-        deallocate(key)
+    call kvs%keys(ks)
+    do i=1, size(ks)
+        print *, ks(i)%get_str(), ':  ', kvs%get(ks(i))
     end do
 end program main
 ```
 
-```shell
-% gfortran -o test2 string_array.f03 assoc_critbit.f03 test2.f03
-% ./test2
+```bash
+$ gfortran -o test2 converter.f03 typack.f03 assoc_critbit.f03 test2.f03
+$ ./test2
  bar:  value2
  baz:  value3
  foo:  value1
 ```
+
+## Type(typack) class in class_typack module
+This class provide encoder and decoder between raw data and byte arrays packed with its type information.
+All keys and values are encoded into byte arrays internally.
+By this trick, we can deal with character and number data without distinction at the same time.
+A type(typack) object can be used as a key to consult assoc instead of raw datum.
+
+### Subroutines of type(typack) :: tpk
+- call tpk%tpack('foo') / call tpk%tpack(3.14e0)  
+Encode raw datum into a byte array.
+The byte array is made with big-endian style,
+which has one byte type signature at first byte.
+- call tpk%tunpack(v)  
+Decode the byte array to original datum.
+'v' must have a right type.
+
+### Subroutines of type(typack) :: tpk
+- tpk%get()  
+Give the datum as a byte array.
+- tpk%get_str()  
+Give the datum after converting to character string.
+If the type is numeric, the string got is different from original one.
+And, it cannot be used as a key for assoc.
+- tpk%get_type()  
+Give a type information.
 
