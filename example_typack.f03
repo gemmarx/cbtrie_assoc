@@ -2,11 +2,6 @@
 program main
     use class_typack
     implicit none
-    integer :: i
-    real :: r
-    double precision :: d
-    complex :: p
-    double complex :: x
     character, allocatable :: c(:)
     character(:), allocatable :: s
     type(typack) :: tpk
@@ -19,37 +14,33 @@ program main
     print *, tpk%is_character()
     print *, tpk%is_integer()
     print *, tpk%get()
-    print *, tpk%get_str()
+    print *, tpk%tunpack()
+    print *, tpk%tunpack('')
 
     call tpk%tpack((999999999))
     print *, tpk%is_integer()
     print *, tpk%is_real()
     print *, tpk%get()
-    call tpk%unpack_num(i)
-    print *, i
+    print *, tpk%tunpack(0)
 
     call tpk%tpack(2.23620679)
     print *, tpk%is_real()
     print *, tpk%get()
-    call tpk%unpack_num(r)
-    print *, r
+    print *, tpk%tunpack(0e0)
 
     call tpk%tpack(1.192d-12)
     print *, tpk%is_double()
     print *, tpk%get()
-    call tpk%unpack_num(d)
-    print *, d
+    print *, tpk%tunpack(0d0)
 
     call tpk%tpack((257e-2,55e-1))
     print *, tpk%is_complex()
     print *, tpk%get()
-    call tpk%unpack_num(p)
-    print *, p
+    print *, tpk%tunpack((0,0))
 
     call tpk%tpack((3.14d-7,2.71d-28))
     print *, tpk%is_dcomplex()
     print *, tpk%get()
-    call tpk%unpack_num(x)
-    print *, x
+    print *, tpk%tunpack((0d0,0d0))
 end program main
 

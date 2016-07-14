@@ -8,13 +8,17 @@ module class_typack
     byte, save :: HCHAR, HINT, HREAL, HDBLE, HCMPLX, HDCMPLX
 
     type, public :: typack
-        byte, private, allocatable :: v(:)
         logical :: given=.false.
+        byte, private, allocatable :: v(:)
     contains
-        procedure :: put, get, tpack, unpack_num, drop, &
-            length, get_type, get_str, &
-            is_character, is_real, is_double, &
+        procedure :: put, get, tpack, drop, length, get_type
+        procedure :: is_character, is_real, is_double, &
             is_integer, is_complex, is_dcomplex, is_numeric
+        procedure :: get_str, get_real, get_double, &
+            get_integer, get_complex, get_dcomplex
+        generic :: tunpack => &
+            get_integer, get_real, get_double, &
+            get_complex, get_dcomplex, get_str
     end type typack
 
 contains
@@ -180,13 +184,10 @@ contains
         end if
     end function get_type
 
-    function get_str(self)
+    function get_str(self, char_mold)
         class(typack), intent(in) :: self
+        character(*), intent(in), optional :: char_mold
         integer :: i,n
-        real :: r
-        double precision :: d
-        complex :: p
-        double complex :: x
         character(:), allocatable :: get_str
         byte :: h
 
@@ -199,67 +200,90 @@ contains
             allocate(character(n)::get_str)
             forall(i=1:n) get_str(i:i) = transfer(self%v(1+i),' ')
         else if(HINT.eq.h) then
-            call self%unpack_num(n)
-            get_str = ntos(n)
+            get_str = ntos(self%tunpack(0))
         else if(HREAL.eq.h) then
-            call self%unpack_num(r)
-            get_str = ntos(r)
+            get_str = ntos(self%tunpack(0e0))
         else if(HDBLE.eq.h) then
-            call self%unpack_num(d)
-            get_str = ntos(d)
+            get_str = ntos(self%tunpack(0d0))
         else if(HCMPLX.eq.h) then
-            call self%unpack_num(p)
-            get_str = ntos(p)
+            get_str = ntos(self%tunpack((0,0)))
         else if(HDCMPLX.eq.h) then
-            call self%unpack_num(x)
-            get_str = ntos(x)
+            get_str = ntos(self%tunpack((0d0,0d0)))
         end if
     end function get_str
 
-    subroutine unpack_num(self, num)
+    function get_integer(self, mold) result(num)
         class(typack), intent(in) :: self
-        class(*), intent(inout) :: num
-        complex, parameter :: ei=(0e0,1e0)
-        integer :: i,n
-
+        integer, intent(in) :: mold
+        integer :: n,num
         if(.not.self%given) return
         n = size(self%v)
+        if(is_little_endian()) then
+            num = transfer(self%v(n:2:-1),num)
+        else
+            num = transfer(self%v(2:n),num)
+        end if
+    end function get_integer
 
-        select type(num)
-        type is(integer)
-            if(is_little_endian()) then
-                num = transfer(self%v(n:2:-1),num)
-            else
-                num = transfer(self%v(2:n),num)
-            end if
-        type is(real)
-            if(is_little_endian()) then
-                num = transfer(self%v(n:2:-1),num)
-            else
-                num = transfer(self%v(2:n),num)
-            end if
-        type is(double precision)
-            if(is_little_endian()) then
-                num = transfer(self%v(n:2:-1),num)
-            else
-                num = transfer(self%v(2:n),num)
-            end if
-        type is(complex)
-            if(is_little_endian()) then
-                num = transfer(self%v(n:2:-1),num)
-                num = aimag(num) + ei*real(num)
-            else
-                num = transfer(self%v(2:n),num)
-            end if
-        type is(complex(kind(0d0)))
-            if(is_little_endian()) then
-                num = transfer(self%v(n:2:-1),num)
-                num = dimag(num) + ei*dble(num)
-            else
-                num = transfer(self%v(2:n),num)
-            end if
-        end select
-    end subroutine unpack_num
+    function get_real(self, mold) result(num)
+        class(typack), intent(in) :: self
+        real, intent(in) :: mold
+        integer :: n
+        real :: num
+        if(.not.self%given) return
+        n = size(self%v)
+        if(is_little_endian()) then
+            num = transfer(self%v(n:2:-1),num)
+        else
+            num = transfer(self%v(2:n),num)
+        end if
+    end function get_real
+
+    function get_double(self, mold) result(num)
+        class(typack), intent(in) :: self
+        double precision, intent(in) :: mold
+        integer :: n
+        double precision :: num
+        if(.not.self%given) return
+        n = size(self%v)
+        if(is_little_endian()) then
+            num = transfer(self%v(n:2:-1),num)
+        else
+            num = transfer(self%v(2:n),num)
+        end if
+    end function get_double
+
+    function get_complex(self, mold) result(num)
+        class(typack), intent(in) :: self
+        complex, intent(in) :: mold
+        complex, parameter :: ei=(0e0,1e0)
+        integer :: n
+        complex :: num
+        if(.not.self%given) return
+        n = size(self%v)
+        if(is_little_endian()) then
+            num = transfer(self%v(n:2:-1),num)
+            num = aimag(num) + ei*real(num)
+        else
+            num = transfer(self%v(2:n),num)
+        end if
+    end function get_complex
+
+    function get_dcomplex(self, mold) result(num)
+        class(typack), intent(in) :: self
+        complex(kind(0d0)), intent(in) :: mold
+        complex, parameter :: ei=(0e0,1e0)
+        integer :: n
+        complex(kind(0d0)) :: num
+        if(.not.self%given) return
+        n = size(self%v)
+        if(is_little_endian()) then
+            num = transfer(self%v(n:2:-1),num)
+            num = aimag(num) + ei*real(num)
+        else
+            num = transfer(self%v(2:n),num)
+        end if
+    end function get_dcomplex
 
     function get_byte(v) result(b)
         class(*), intent(in) :: v

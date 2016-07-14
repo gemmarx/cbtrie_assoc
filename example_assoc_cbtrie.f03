@@ -4,7 +4,8 @@ program main
     use class_assoc_cbtrie
     implicit none
     integer :: i
-    real :: r
+    double complex :: x
+    character(:), allocatable :: c
     type(assoc) :: kvs
     type(typack) :: tpk
     type(typack), allocatable :: ks(:)
@@ -26,52 +27,47 @@ program main
     call kvs%put('aaaaaaaaaa', 'foobarfoo')
     call kvs%put('aaaa', 'foofoo')
 
+    call kvs%put('#', 777)
     call kvs%put(88, 3.14)
     call kvs%put(1e0, (1.732d0, 2.236d0))
 
-    print *, kvs%get_str(88)
-    call tpk%tpack(88)
-    call kvs%get_num(tpk, r)
-    print *, r
+    print *, kvs%get('#',i)
+    print *, kvs%get(88)
+    print *, kvs%get(88, 0.0)
+    call tpk%tpack(1.000)
+    print *, kvs%get(tpk, x)
 
+    print *
     call kvs%keys(ks)
     do i=1, size(ks)
-        print *, ks(i)%get_str(), &
-            ' => ', kvs%get_type(ks(i)), &
-            ':  ', kvs%get_str(ks(i))
+        print *, ks(i)%get_str(), ' => ', &
+            kvs%get_type(ks(i)), ':  ', &
+            kvs%get(ks(i))
     end do
 
-    print *, kvs%have('aa')
-    print *, kvs%have('aaa')
-    print *, kvs%have('uuu')
-    print *, kvs%get_str('aa')
-    call kvs%put('aa', 'uuura')
-    print *, kvs%get_str('aa')
-    call kvs%del('aa')
-    print *, kvs%get_str('aa')
-    call kvs%put('aa', 'ooora')
-    print *, kvs%get_str('aa')
-    call kvs%put('aaa', 'toctoc')
-    print *, kvs%get_str('aaa')
-    print *, kvs%get_str('多バイト文字')
+    print *
+    print *, "The number of KV-Pairs:", kvs%nelm()
 
-    print *, kvs%first()
-    print *, kvs%next(kvs%first())
-    print *, kvs%next("")
-    print *, kvs%next('aa')
-    print *, kvs%next('real_num')
-    print *, kvs%next('多バイト文')
-    print *, kvs%next('多バイト文字')
-    print *, kvs%next('多バイト文字文')
+    print *
+    print *, "Have 'aa'?  ", kvs%have('aa')
+    print *, "Have 'aaa'?  ", kvs%have('aaa')
+    print *, "Have 'uuu'?  ", kvs%have('uuu')
 
-    print *, kvs%prev("")
-    print *, kvs%prev('aa')
-    print *, kvs%prev('real_num')
-    print *, kvs%prev('多バイト文')
-    print *, kvs%prev('多バイト文字')
-    print *, kvs%prev('多バイト文字文')
-    print *, kvs%last()
-    print *, kvs%prev(kvs%last())
+    print *
+    tpk = kvs%first()
+    print *, "First:  ", tpk%get_str()
+    tpk = kvs%next(kvs%first())
+    print *, "Next of First:  ", tpk%get_str()
+    tpk = kvs%next('ab')
+    print *, "Next of 'ab':  ", tpk%get_str()
+
+    print *,
+    tpk = kvs%prev('ab')
+    print *, "Prev of 'ab':  ", tpk%get_str()
+    tpk = kvs%prev(kvs%last())
+    print *, "Prev of Last:  ", tpk%get_str()
+    tpk = kvs%last()
+    print *, "Last:  ", tpk%get_str()
 
     call kvs%drop
 

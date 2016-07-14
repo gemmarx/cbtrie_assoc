@@ -204,9 +204,13 @@ module class_assoc_cbtrie
         type(trie) :: cbt
         type(kvarrs) :: kvs
     contains
-        procedure :: init, drop, put, get_str, del, have, keys, dump, &
-            next, prev, first, last, get_type, get_num, nelm
+        procedure :: init, drop, put, del, have, keys, dump, &
+            next, prev, first, last, get_type, get_str, nelm
         procedure, private :: get_crit_digit, retrieve, is_same_key
+        procedure, private :: &
+            get_integer, get_real, get_double, get_complex, get_dcomplex
+        generic :: get => get_integer, get_real, get_double, &
+            get_complex, get_dcomplex, get_str
     end type assoc
 
 contains
@@ -438,27 +442,68 @@ contains
         logical :: being
         character(:), allocatable :: get_type
         type(typack) :: bv
-        call get1(self, key, being, val=bv)
+        call get1(self, key, being, bv)
         if(being) get_type = bv%get_type()
     end function get_type
 
-    subroutine get_num(self, key, num)
+    integer function get_integer(self, key, mold)
         class(assoc), intent(in) :: self
         class(*), intent(in) :: key
-        class(*), intent(inout) :: num
+        integer :: mold
         logical :: being
         type(typack) :: bv
-        call get1(self, key, being, val=bv)
-        if(being) call bv%unpack_num(num)
-    end subroutine get_num
+        call get1(self, key, being, bv)
+        if(being) get_integer = bv%tunpack(mold)
+    end function get_integer
 
-    function get_str(self, key)
+    real function get_real(self, key, mold)
         class(assoc), intent(in) :: self
         class(*), intent(in) :: key
+        real :: mold
+        logical :: being
+        type(typack) :: bv
+        call get1(self, key, being, bv)
+        if(being) get_real = bv%tunpack(mold)
+    end function get_real
+
+    double precision function get_double(self, key, mold)
+        class(assoc), intent(in) :: self
+        class(*), intent(in) :: key
+        double precision :: mold
+        logical :: being
+        type(typack) :: bv
+        call get1(self, key, being, bv)
+        if(being) get_double = bv%tunpack(mold)
+    end function get_double
+
+    complex function get_complex(self, key, mold)
+        class(assoc), intent(in) :: self
+        class(*), intent(in) :: key
+        complex :: mold
+        logical :: being
+        type(typack) :: bv
+        call get1(self, key, being, bv)
+        if(being) get_complex = bv%tunpack(mold)
+    end function get_complex
+
+    complex(kind(0d0)) function get_dcomplex(self, key, mold)
+        class(assoc), intent(in) :: self
+        class(*), intent(in) :: key
+        complex(kind(0d0)) :: mold
+        logical :: being
+        type(typack) :: bv
+        call get1(self, key, being, bv)
+        if(being) get_dcomplex = bv%tunpack(mold)
+    end function get_dcomplex
+
+    function get_str(self, key, char_mold)
+        class(assoc), intent(in) :: self
+        class(*), intent(in) :: key
+        character(*), intent(in), optional :: char_mold
         logical :: being
         character(:), allocatable :: get_str
         type(typack) :: bv
-        call get1(self, key, being, val=bv)
+        call get1(self, key, being, bv)
         if(being) get_str = bv%get_str()
     end function get_str
 
@@ -531,63 +576,75 @@ contains
     function next(self, key)
         class(assoc), intent(in) :: self
         class(*), intent(in) :: key
-        character(:), allocatable :: next
+        type(typack) :: next
         byte, allocatable :: bseq(:)
         integer :: node, near, cpos
         type(typack) :: tpk
-        call tpk%tpack(key)
-        bseq = tpk%get()
+        
+        select type(key)
+        class is(typack)
+            bseq = key%get()
+        class default
+            call tpk%tpack(key)
+            bseq = tpk%get()
+        end select
         call self%retrieve(bseq,0,near,cpos)
         if(self%is_same_key(bseq, near) .or. test_cbit(bseq, cpos)) then
             node = self%cbt%next(near)
         else
             node = self%cbt%part_smallest(near)
         end if
-        next=""
+        call next%drop
         if(0.eq.node) return
-        next = self%kvs%bk(self%cbt%t(node)%dat)%get_str()
+        call next%put(self%kvs%bk(self%cbt%t(node)%dat)%get())
     end function next
 
     function prev(self, key)
         class(assoc), intent(in) :: self
         class(*), intent(in) :: key
-        character(:), allocatable :: prev
+        type(typack) :: prev
         byte, allocatable :: bseq(:)
         integer :: node, near, cpos
         type(typack) :: tpk
-        call tpk%tpack(key)
-        bseq = tpk%get()
+        
+        select type(key)
+        class is(typack)
+            bseq = key%get()
+        class default
+            call tpk%tpack(key)
+            bseq = tpk%get()
+        end select
         call self%retrieve(bseq,0,near,cpos)
         if(self%is_same_key(bseq, near) .or. .not.test_cbit(bseq, cpos)) then
             node = self%cbt%prev(near)
         else
             node = self%cbt%part_greatest(near)
         end if
-        prev=""
+        call prev%drop
         if(0.eq.node) return
-        prev = self%kvs%bk(self%cbt%t(node)%dat)%get_str()
+        call prev%put(self%kvs%bk(self%cbt%t(node)%dat)%get())
     end function prev
 
     function first(self)
         class(assoc), intent(in) :: self
-        character(:), allocatable :: first
+        type(typack) :: first
         integer :: root, node
         root = self%cbt%root
-        first = ""
+        call first%drop
         if(0.eq.root) return
         node = self%cbt%part_smallest(root)
-        first = self%kvs%bk(self%cbt%t(node)%dat)%get_str()
+        call first%put(self%kvs%bk(self%cbt%t(node)%dat)%get())
     end function first
 
     function last(self)
         class(assoc), intent(in) :: self
-        character(:), allocatable :: last
+        type(typack) :: last
         integer :: root, node
         root = self%cbt%root
-        last = ""
+        call last%drop
         if(0.eq.root) return
         node = self%cbt%part_greatest(root)
-        last = self%kvs%bk(self%cbt%t(node)%dat)%get_str()
+        call last%put(self%kvs%bk(self%cbt%t(node)%dat)%get())
     end function last
 end module class_assoc_cbtrie
 
