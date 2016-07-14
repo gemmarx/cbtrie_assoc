@@ -124,9 +124,9 @@ contains
         if(node.eq.self%root) return
         up = self%t(node)%up
         if(node.eq.self%t(up)%n0) then
-        next = self%part_smallest(self%t(up)%n1)
+            next = self%part_smallest(self%t(up)%n1)
         else
-        next = self%next(up)
+            next = self%next(up)
         end if
     end function next
 
@@ -192,7 +192,7 @@ contains
     end subroutine release
 end module class_kv_arrays
 
-module assoc_critbit_trie
+module class_assoc_cbtrie
     use param_whole
     use class_typack
     use class_trie
@@ -367,15 +367,15 @@ contains
             up = self%cbt%t(src)%up
             if(0.eq.up) then
                 self%cbt%root = node
-                else if(src.eq.self%cbt%t(up)%n0) then
-                    self%cbt%t(up)%n0 = node
-                else
-                    self%cbt%t(up)%n1 = node
+            else if(src.eq.self%cbt%t(up)%n0) then
+                self%cbt%t(up)%n0 = node
+            else
+                self%cbt%t(up)%n1 = node
             end if
             if(test_cbit(bseq, cpos)) then
                 self%cbt%t(node)%n0 = src
                 self%cbt%t(node)%n1 = new
-                else
+            else
                 self%cbt%t(node)%n0 = new
                 self%cbt%t(node)%n1 = src
             end if
@@ -439,8 +439,7 @@ contains
         character(:), allocatable :: get_type
         type(typack) :: bv
         call get1(self, key, f, val=bv)
-        if(.not.f) return
-        get_type = bv%get_type()
+        if(f) get_type = bv%get_type()
     end function get_type
 
     subroutine get_num(self, key, num)
@@ -450,8 +449,7 @@ contains
         logical :: f
         type(typack) :: bv
         call get1(self, key, f, val=bv)
-        if(.not.f) return
-        call bv%tunpack(num)
+        if(f) call bv%tunpack(num)
     end subroutine get_num
 
     function get(self, key)
@@ -461,8 +459,7 @@ contains
         character(:), allocatable :: get
         type(typack) :: bv
         call get1(self, key, f, val=bv)
-        if(.not.f) return
-        get = bv%get_str()
+        if(f) get = bv%get_str()
     end function get
 
     logical function have(self, key)
@@ -591,5 +588,5 @@ contains
         node = self%cbt%part_greatest(root)
         last = self%kvs%bk(self%cbt%t(node)%dat)%get_str()
     end function last
-end module assoc_critbit_trie
+end module class_assoc_cbtrie
 

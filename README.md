@@ -1,7 +1,7 @@
 Assoc Critbit Trie
 ==
 An associative array based on [Critbit-Tree Trie](https://cr.yp.to/critbit.html) in Fortran 2003.
-- GFortran (>4.9) is required
+- GFortran (>5.x) is required
 - Character string or numeric primitive data (integer/real/complex) can be used as keys or values.
 The way to deal with numbers is, however, bit complicated.
 - This project has been started to learn Fortran 2003's new facilities.
@@ -12,13 +12,13 @@ Hash-map and Btree-map are major data structures to implement it.
 Each of the structures has a weak point.
 Hash cannot keep the order of keys.
 Btree is to take a time depending on the number of keys to do search operation.
-Crit-Bit tree is a trie system which has a good balance against the problems.
+Critbit-Tree is a trie system which has a good balance against the problems.
 
 ## Usage
 ##### test.f03
 ```FORTRAN
 program main
-    use assoc_critbit_trie
+    use class_assoc_cbtrie
     implicit none
 
     type(assoc) :: kvs
@@ -32,12 +32,12 @@ end program main
 ```
 
 ```bash
-$ gfortran -o test converter.f03 typack.f03 assoc_critbit.f03 test.f03
+$ gfortran -o test converter.f03 typack.f03 assoc_cbtrie.f03 test.f03
 $ ./test
  assoc
 ```
 
-## Methods of Type(assoc) in assoc_critbit_trie module
+## Type(assoc) class of class_assoc_cbtrie module in assoc_cbtrie.f03
 ### Subroutines of type(assoc) :: kvs
 - call kvs%init  
 Initializer
@@ -46,19 +46,19 @@ Destructor
 - call kvs%put(key, value)  
 Register a pair of key-value.
 - call kvs%del(key)  
-Delete a pair specified by the key.
+Delete a pair specified by the 'key'.
 - call kvs%keys(ks)  
 Give all keys.
 'ks' is an array of type(typack) in class_typack module.
 - call kvs%get_num(key, value)  
-Give the value as a form of numeric type.
+Give a value as a form of numeric type.
 'value' must have a right type.
 
 ### Functions of type(assoc) :: kvs
 - kvs%get(key)  
-Give the value binding to the key.
+Give the value binding to the 'key'.
 - kvs%have(key)  
-Ask if the key is in the assoc.
+Ask if the 'key' is in the assoc.
 - kvs%first()  
 Give the first key according to ascii order.
 - kvs%last()  
@@ -70,7 +70,7 @@ str does not have to exist in the assoc.
 Give the key followed by 'str' according to ascii order.
 str does not have to exist in the assoc.
 - kvs%get_type(key)  
-Give a type information of value bound to 'key'
+Give a type information of value binding to the 'key'
 - kvs%nelm()  
 Give the number of psirs registerd in.
 
@@ -80,7 +80,7 @@ Traverse all the keys of the assoc
 ```FORTRAN
 program main
     use class_typack
-    use assoc_critbit_trie
+    use class_assoc_cbtrie
     implicit none
 
     integer :: i
@@ -100,14 +100,14 @@ end program main
 ```
 
 ```bash
-$ gfortran -o test2 converter.f03 typack.f03 assoc_critbit.f03 test2.f03
+$ gfortran -o test2 converter.f03 typack.f03 assoc_cbtrie.f03 test2.f03
 $ ./test2
  bar:  value2
  baz:  value3
  foo:  value1
 ```
 
-## Type(typack) class in class_typack module
+## Type(typack) class of class_typack module in typack.f03
 This class provide encoder and decoder between raw data and byte arrays packed with its type information.
 All keys and values are encoded into byte arrays internally.
 By this trick, we can deal with character and number data without distinction at the same time.
@@ -122,7 +122,7 @@ which has one byte type signature at first byte.
 Decode the byte array to original datum.
 'v' must have a right type.
 
-### Subroutines of type(typack) :: tpk
+### Functions of type(typack) :: tpk
 - tpk%get()  
 Give the datum as a byte array.
 - tpk%get_str()  

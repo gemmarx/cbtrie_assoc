@@ -1,5 +1,5 @@
 
-TARGET = example_assoc_critbit
+TARGET = example_assoc_cbtrie
 
 FC     := gfortran
 FFLAGS := -O2 -fimplicit-none
@@ -15,7 +15,7 @@ example_deque: converter.f03 string.f03 deque.f03 example_deque.f03
 example_typack: converter.f03 typack.f03 example_typack.f03
 	$(FC) $(FFLAGS) -o $@ $^
 
-example_assoc_critbit: converter.f03 typack.f03 assoc_critbit.f03 example_assoc_critbit.f03
+example_assoc_cbtrie: converter.f03 typack.f03 assoc_cbtrie.f03 example_assoc_cbtrie.f03
 	$(FC) $(FFLAGS) -o $@ $^
 
 clean:

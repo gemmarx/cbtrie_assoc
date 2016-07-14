@@ -1,7 +1,7 @@
 
 program main
     use class_typack
-    use assoc_critbit_trie
+    use class_assoc_cbtrie
     implicit none
     integer :: i
     real :: r
@@ -37,8 +37,8 @@ program main
     call kvs%keys(ks)
     do i=1, size(ks)
         print *, ks(i)%get_str(), &
-            ':  ', kvs%get_type(ks(i)), &
-            '  =>  ', kvs%get(ks(i))
+            ' => ', kvs%get_type(ks(i)), &
+            ':  ', kvs%get(ks(i))
     end do
 
     print *, kvs%have('aa')
