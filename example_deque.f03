@@ -7,19 +7,19 @@ program main
     character(:), allocatable :: v
 
     call q%init
-    call q%push('hoge')
-    call q%push('fuga')
-    call q%push('piyo')
+    call q%push('foo')
+    call q%push('bar')
+    call q%push('baz')
     call q%shift(v)
     print *, v
-    call q%push('hoge')
-    call q%push('fuga')
-    call q%push('piyo')
+    call q%push('foo')
+    call q%push('bar')
+    call q%push('baz')
     call q%pop(v)
     print *, v
-    call q%push('hoge')
-    call q%push('fuga')
-    call q%push('piyo')
+    call q%push('foo')
+    call q%push('bar')
+    call q%push('baz')
     call q%shift(v)
     print *, v
     call q%shift(v)

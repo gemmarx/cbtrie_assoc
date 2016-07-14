@@ -9,16 +9,18 @@ module class_typack
 
     type, public :: typack
         byte, private, allocatable :: v(:)
+        logical :: given=.false.
     contains
-        procedure :: put, get, tpack, tunpack, drop, &
+        procedure :: put, get, tpack, unpack_num, drop, &
             length, get_type, get_str, &
             is_character, is_real, is_double, &
-            is_integer, is_complex, is_dcomplex
+            is_integer, is_complex, is_dcomplex, is_numeric
     end type typack
 
 contains
     subroutine init_header()
         byte, allocatable :: h(:)
+        if(inited) return
         h = get_byte(int(z'a0'))
         HCHAR = h(size(h))
         h = get_byte(int(z'd3'))
@@ -37,19 +39,22 @@ contains
     subroutine drop(self)
         class(typack), intent(inout) :: self
         if(allocated(self%v)) deallocate(self%v)
+        allocate(self%v(0))
+        self%given = .false.
     end subroutine drop
 
     subroutine put(self, seq)
         class(typack), intent(inout) :: self
         byte, intent(in) :: seq(:)
+        call init_header
         call self%drop
         self%v = seq
+        self%given = .true.
     end subroutine put
 
     function get(self)
         class(typack), intent(in) :: self
-        !byte :: get(size(self%v))
-        byte, allocatable :: get(:)
+        byte :: get(size(self%v))
         get = self%v
     end function get
 
@@ -59,11 +64,10 @@ contains
         byte, allocatable :: b(:), h(:)
         integer :: i,n
 
-        if(.not.inited) call init_header
-
+        call init_header
         call self%drop
-        b = get_byte(v)
 
+        b = get_byte(v)
         select type(v)
         type is(character(*))
             b = [HCHAR,b]
@@ -80,61 +84,83 @@ contains
         end select
 
         self%v = b
+        self%given = .true.
     end subroutine tpack
 
     integer function length(self)
         class(typack), intent(in) :: self
+        if(.not.self%given) return
         length = -1 + size(self%v)
     end function length
 
     logical function is_character(self)
         class(typack), intent(in) :: self
-        if(.not.inited) call init_header
         is_character = .false.
+        if(.not.self%given) return
+        call init_header
         if(HCHAR.eq.self%v(1)) is_character = .true.
     end function is_character
 
     logical function is_integer(self)
         class(typack), intent(in) :: self
-        if(.not.inited) call init_header
         is_integer = .false.
+        if(.not.self%given) return
+        call init_header
         if(HINT.eq.self%v(1)) is_integer = .true.
     end function is_integer
 
     logical function is_real(self)
         class(typack), intent(in) :: self
-        if(.not.inited) call init_header
         is_real = .false.
+        if(.not.self%given) return
+        call init_header
         if(HREAL.eq.self%v(1)) is_real = .true.
     end function is_real
 
     logical function is_double(self)
         class(typack), intent(in) :: self
-        if(.not.inited) call init_header
         is_double = .false.
+        if(.not.self%given) return
+        call init_header
         if(HDBLE.eq.self%v(1)) is_double = .true.
     end function is_double
 
     logical function is_complex(self)
         class(typack), intent(in) :: self
-        if(.not.inited) call init_header
         is_complex = .false.
+        if(.not.self%given) return
+        call init_header
         if(HCMPLX.eq.self%v(1)) is_complex = .true.
     end function is_complex
 
     logical function is_dcomplex(self)
         class(typack), intent(in) :: self
-        if(.not.inited) call init_header
         is_dcomplex = .false.
+        if(.not.self%given) return
+        call init_header
         if(HDCMPLX.eq.self%v(1)) is_dcomplex = .true.
     end function is_dcomplex
+
+    logical function is_numeric(self)
+        class(typack), intent(in) :: self
+        is_numeric = .false.
+        if(.not.self%given) return
+        call init_header
+        if(HINT.eq.self%v(1) .or. &
+           HREAL.eq.self%v(1) .or. &
+           HDBLE.eq.self%v(1) .or. &
+           HCMPLX.eq.self%v(1) .or. &
+           HDCMPLX.eq.self%v(1)) is_numeric = .true.
+    end function is_numeric
 
     function get_type(self)
         class(typack), intent(in) :: self
         character(:), allocatable :: get_type
         byte :: h
 
-        if(.not.inited) call init_header
+        get_type = 'no value'
+        if(.not.self%given) return
+        call init_header
 
         h = self%v(1)
         if(HCHAR.eq.h) then
@@ -149,6 +175,8 @@ contains
             get_type = 'complex'
         else if(HDCMPLX.eq.h) then
             get_type = 'dcomplex'
+        else
+            get_type = 'unknown'
         end if
     end function get_type
 
@@ -162,7 +190,8 @@ contains
         character(:), allocatable :: get_str
         byte :: h
 
-        if(.not.inited) call init_header
+        if(.not.self%given) return
+        call init_header
 
         h = self%v(1)
         if(HCHAR.eq.h) then
@@ -170,68 +199,67 @@ contains
             allocate(character(n)::get_str)
             forall(i=1:n) get_str(i:i) = transfer(self%v(1+i),' ')
         else if(HINT.eq.h) then
-            call self%tunpack(n)
+            call self%unpack_num(n)
             get_str = ntos(n)
         else if(HREAL.eq.h) then
-            call self%tunpack(r)
+            call self%unpack_num(r)
             get_str = ntos(r)
         else if(HDBLE.eq.h) then
-            call self%tunpack(d)
+            call self%unpack_num(d)
             get_str = ntos(d)
         else if(HCMPLX.eq.h) then
-            call self%tunpack(p)
+            call self%unpack_num(p)
             get_str = ntos(p)
         else if(HDCMPLX.eq.h) then
-            call self%tunpack(x)
+            call self%unpack_num(x)
             get_str = ntos(x)
         end if
     end function get_str
 
-    subroutine tunpack(self, v)
+    subroutine unpack_num(self, num)
         class(typack), intent(in) :: self
-        class(*), intent(inout) :: v
+        class(*), intent(inout) :: num
         complex, parameter :: ei=(0e0,1e0)
         integer :: i,n
 
+        if(.not.self%given) return
         n = size(self%v)
 
-        select type(v)
-        type is(character(*))
-            forall(i=1:-1+n) v(i:i) = transfer(self%v(1+i),' ')
+        select type(num)
         type is(integer)
             if(is_little_endian()) then
-                v = transfer(self%v(n:2:-1),v)
+                num = transfer(self%v(n:2:-1),num)
             else
-                v = transfer(self%v(2:n),v)
+                num = transfer(self%v(2:n),num)
             end if
         type is(real)
             if(is_little_endian()) then
-                v = transfer(self%v(n:2:-1),v)
+                num = transfer(self%v(n:2:-1),num)
             else
-                v = transfer(self%v(2:n),v)
+                num = transfer(self%v(2:n),num)
             end if
         type is(double precision)
             if(is_little_endian()) then
-                v = transfer(self%v(n:2:-1),v)
+                num = transfer(self%v(n:2:-1),num)
             else
-                v = transfer(self%v(2:n),v)
+                num = transfer(self%v(2:n),num)
             end if
         type is(complex)
             if(is_little_endian()) then
-                v = transfer(self%v(n:2:-1),v)
-                v = aimag(v) + ei*real(v)
+                num = transfer(self%v(n:2:-1),num)
+                num = aimag(num) + ei*real(num)
             else
-                v = transfer(self%v(2:n),v)
+                num = transfer(self%v(2:n),num)
             end if
         type is(complex(kind(0d0)))
             if(is_little_endian()) then
-                v = transfer(self%v(n:2:-1),v)
-                v = dimag(v) + ei*dble(v)
+                num = transfer(self%v(n:2:-1),num)
+                num = dimag(num) + ei*dble(num)
             else
-                v = transfer(self%v(2:n),v)
+                num = transfer(self%v(2:n),num)
             end if
         end select
-    end subroutine tunpack
+    end subroutine unpack_num
 
     function get_byte(v) result(b)
         class(*), intent(in) :: v

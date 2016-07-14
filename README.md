@@ -37,7 +37,7 @@ $ ./test
  assoc
 ```
 
-## Type(assoc) class of class_assoc_cbtrie module in assoc_cbtrie.f03
+## ASSOC type of class_assoc_cbtrie module in assoc_cbtrie.f03
 ### Subroutines of type(assoc) :: kvs
 - call kvs%init  
 Initializer
@@ -51,28 +51,30 @@ Delete a pair specified by the 'key'.
 Give all keys.
 'ks' is an array of type(typack) in class_typack module.
 - call kvs%get_num(key, value)  
-Give a value as a form of numeric type.
-'value' must have a right type.
+Give the numeric value binding to the 'key' in 'value'.
+'value' must have the right type.
 
 ### Functions of type(assoc) :: kvs
-- kvs%get(key)  
-Give the value binding to the 'key'.
 - kvs%have(key)  
-Ask if the 'key' is in the assoc.
+Ask if the 'key' is in.
+- kvs%get_type(key)  
+Give a character string of a type information of value binding to the 'key'.
+- kvs%get_str(key)  
+Give a value binding to the 'key' as a form of character string.
+If its type is numeric, the value is converted into a character string,
+which cannot be used as a key for the assoc yet.
 - kvs%first()  
 Give the first key according to ascii order.
 - kvs%last()  
 Give the last key according to ascii order.
 - kvs%next(str)  
-Give the key following to 'str' according to ascii order.
-str does not have to exist in the assoc.
+Give the key following to 'str' in ascii order.
+'str' does not have to be in.
 - kvs%prev(str)  
-Give the key followed by 'str' according to ascii order.
-str does not have to exist in the assoc.
-- kvs%get_type(key)  
-Give a type information of value binding to the 'key'
+Give the key followed by 'str' in ascii order.
+'str' does not have to be in.
 - kvs%nelm()  
-Give the number of psirs registerd in.
+Give the number of pairs registered in.
 
 ## Usage2
 Traverse all the keys of the assoc
@@ -107,7 +109,7 @@ $ ./test2
  foo:  value1
 ```
 
-## Type(typack) class of class_typack module in typack.f03
+## TYPACK type of class_typack module in typack.f03
 This class provide encoder and decoder between raw data and byte arrays packed with its type information.
 All keys and values are encoded into byte arrays internally.
 By this trick, we can deal with character and number data without distinction at the same time.
@@ -118,17 +120,16 @@ A type(typack) object can be used as a key to consult assoc instead of raw datum
 Encode raw datum into a byte array.
 The byte array is made with big-endian style,
 which has one byte type signature at first byte.
-- call tpk%tunpack(v)  
-Decode the byte array to original datum.
+- call tpk%unpack_num(v)  
+Decode the byte array to original numeric datum.
 'v' must have a right type.
 
 ### Functions of type(typack) :: tpk
 - tpk%get()  
 Give the datum as a byte array.
-- tpk%get_str()  
-Give the datum after converting to character string.
-If the type is numeric, the string got is different from original one.
-And, it cannot be used as a key for assoc.
 - tpk%get_type()  
 Give a type information.
+- tpk%get_str()  
+Give the datum as a character string.
+If its type is numeric, the datum converted into a character.
 

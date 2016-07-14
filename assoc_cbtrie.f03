@@ -204,7 +204,7 @@ module class_assoc_cbtrie
         type(trie) :: cbt
         type(kvarrs) :: kvs
     contains
-        procedure :: init, drop, put, get, del, have, keys, dump, &
+        procedure :: init, drop, put, get_str, del, have, keys, dump, &
             next, prev, first, last, get_type, get_num, nelm
         procedure, private :: get_crit_digit, retrieve, is_same_key
     end type assoc
@@ -435,32 +435,32 @@ contains
     function get_type(self, key)
         class(assoc), intent(in) :: self
         class(*), intent(in) :: key
-        logical :: f
+        logical :: being
         character(:), allocatable :: get_type
         type(typack) :: bv
-        call get1(self, key, f, val=bv)
-        if(f) get_type = bv%get_type()
+        call get1(self, key, being, val=bv)
+        if(being) get_type = bv%get_type()
     end function get_type
 
     subroutine get_num(self, key, num)
         class(assoc), intent(in) :: self
         class(*), intent(in) :: key
         class(*), intent(inout) :: num
-        logical :: f
+        logical :: being
         type(typack) :: bv
-        call get1(self, key, f, val=bv)
-        if(f) call bv%tunpack(num)
+        call get1(self, key, being, val=bv)
+        if(being) call bv%unpack_num(num)
     end subroutine get_num
 
-    function get(self, key)
+    function get_str(self, key)
         class(assoc), intent(in) :: self
         class(*), intent(in) :: key
-        logical :: f
-        character(:), allocatable :: get
+        logical :: being
+        character(:), allocatable :: get_str
         type(typack) :: bv
-        call get1(self, key, f, val=bv)
-        if(f) get = bv%get_str()
-    end function get
+        call get1(self, key, being, val=bv)
+        if(being) get_str = bv%get_str()
+    end function get_str
 
     logical function have(self, key)
         class(assoc), intent(in) :: self
@@ -504,6 +504,7 @@ contains
         integer, allocatable :: ar(:)
         integer :: n, i
         n = -1+self%kvs%ind; i=1
+        if(allocated(v)) deallocate(v)
         allocate(v(n), ar(n))
         call push_key(self%cbt,self%cbt%root,ar,i)
         do i=1,n

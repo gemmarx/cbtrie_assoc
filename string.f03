@@ -4,13 +4,13 @@ module class_string
     implicit none
     private
     character, parameter :: &
-        DELIMITER(1:4)=[' ', char(9), char(10), char(13)]
+        DELIMITER(1:4)=[' ', achar(9), achar(10), achar(13)]
 
     type, public :: string
-        character(:), private, allocatable :: c
+        character(:), allocatable :: c
     contains
-        procedure :: drop, put, get, length, chars, uc, lc, &
-            nword, words, get_real
+        procedure :: drop, put, get, chars, uc, lc, &
+            words, get_real
     end type string
 
 contains
@@ -31,21 +31,10 @@ contains
         get = self%c
     end function get
 
-    subroutine put_num(self, num)
-        class(string), intent(inout) :: self
-        class(*), intent(in) :: num
-        self%c = ntos(num)
-    end subroutine put_num
-
     real function get_real(self)
         class(string), intent(in) :: self
         read(self%c, *), get_real
     end function get_real
-
-    integer function length(self)
-        class(string), intent(in) :: self
-        length = len(self%c)
-    end function length
 
     function uc(self)
         class(string), intent(in) :: self
@@ -72,55 +61,32 @@ contains
         chars = [(self%c(i:i), i=1, len(self%c))]
     end function chars
 
-    integer function nword(self)
-        class(string), intent(in) :: self
-        integer :: i,j,n
-        n = len(self%c)
-        j=0 ; nword=0
-        do i=1,n
-            if(j.gt.i) cycle
-            if(any(DELIMITER.eq.(self%c(i:i)))) cycle
-            do j=1+i,n
-                if(any(DELIMITER.eq.(self%c(j:j)))) exit
-            end do
-            nword = 1 + nword
-        end do
-    end function nword
-
     ! words(ws)
-    !   gets all words into ws
-    !   needed size of ws will be got through nword()
-    !       allocate(ws(str%nword()))
-    !       call str%words(ws)
+    !   get all words
     ! words(ws, n)
-    !   (n>0) => gets n words from head
-    !   (n=0) => gets all words
-    !   and, the number of words got indeed is given in n
-    subroutine words(self, ws, n)
+    !   get n words from head
+    function words(self, n)
         class(string), intent(in) :: self
-        type(string), intent(out) :: ws(:)
-        integer, intent(inout), optional :: n
+        integer, intent(in), optional :: n
         integer :: i, j, limit, str_end, word_cnt
+        type(string), allocatable :: words(:)
 
         str_end = len_trim(self%c)
-        limit = size(ws)
-        if(present(n)) then
-            if(0.lt.n .and. n.lt.limit) limit=n
-        end if
+        limit=0 ; if(present(n)) limit=n
 
+        allocate(words(0))
         j=0 ; word_cnt=0
         do i=1,str_end
-            if(limit.le.word_cnt) exit
+            if(present(n) .and. limit.le.word_cnt) exit
             if(j.gt.i) cycle
             if(any(DELIMITER.eq.(self%c(i:i)))) cycle
             do j=1+i,str_end
                 if(any(DELIMITER.eq.(self%c(j:j)))) exit
             end do
             word_cnt = 1 + word_cnt
-            ws(word_cnt)%c = self%c(i:-1+j)
+            words = [words, string(self%c(i:-1+j))]
         end do
-        if(present(n)) n = word_cnt
-    end subroutine words
+    end function words
 
     function chars_to_str(arr)
         character, intent(in) :: arr(:)

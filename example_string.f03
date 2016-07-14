@@ -8,7 +8,7 @@ program main
     type(string) :: str
     type(string), allocatable :: w(:)
 
-    call str%put('Hoge')
+    str = string('Foo')
     s = str%get()
     c = str%chars()
     print *, len(s)
@@ -16,9 +16,8 @@ program main
     print *, str%uc()
     print *, str%lc()
 
-    call str%put('Hoge Fuga Piyo')
-    allocate(w(str%nword()))
-    call str%words(w)
+    call str%put('Foo bar baz.')
+    w = str%words()
 
     print *, size(w)
     do i=1, size(w)

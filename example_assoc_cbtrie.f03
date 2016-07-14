@@ -29,7 +29,7 @@ program main
     call kvs%put(88, 3.14)
     call kvs%put(1e0, (1.732d0, 2.236d0))
 
-    print *, kvs%get(88)
+    print *, kvs%get_str(88)
     call tpk%tpack(88)
     call kvs%get_num(tpk, r)
     print *, r
@@ -38,22 +38,22 @@ program main
     do i=1, size(ks)
         print *, ks(i)%get_str(), &
             ' => ', kvs%get_type(ks(i)), &
-            ':  ', kvs%get(ks(i))
+            ':  ', kvs%get_str(ks(i))
     end do
 
     print *, kvs%have('aa')
     print *, kvs%have('aaa')
     print *, kvs%have('uuu')
-    print *, kvs%get('aa')
+    print *, kvs%get_str('aa')
     call kvs%put('aa', 'uuura')
-    print *, kvs%get('aa')
+    print *, kvs%get_str('aa')
     call kvs%del('aa')
-    print *, kvs%get('aa')
+    print *, kvs%get_str('aa')
     call kvs%put('aa', 'ooora')
-    print *, kvs%get('aa')
+    print *, kvs%get_str('aa')
     call kvs%put('aaa', 'toctoc')
-    print *, kvs%get('aaa')
-    print *, kvs%get('多バイト文字')
+    print *, kvs%get_str('aaa')
+    print *, kvs%get_str('多バイト文字')
 
     print *, kvs%first()
     print *, kvs%next(kvs%first())
