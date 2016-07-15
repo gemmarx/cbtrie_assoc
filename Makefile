@@ -19,5 +19,8 @@ example_assoc_cbtrie: converter.f03 typack.f03 assoc_cbtrie.f03 example_assoc_cb
 	$(FC) $(FFLAGS) -o $@ $^
 
 clean:
-	-rm -rf *.o *.mod
+	-rm -f *.o *.mod
+
+cleanall: clean
+	-rm -f example_assoc_cbtrie example_typack example_deque example_string
 

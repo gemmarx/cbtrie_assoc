@@ -11,7 +11,7 @@ module class_typack
         logical :: given=.false.
         byte, private, allocatable :: v(:)
     contains
-        procedure :: put, get, tpack, drop, length, get_type
+        procedure :: put, get, tpack, drop, get_type
         procedure :: is_character, is_real, is_double, &
             is_integer, is_complex, is_dcomplex, is_numeric
         procedure :: get_str, get_real, get_double, &
@@ -65,8 +65,8 @@ contains
     subroutine tpack(self, v)
         class(typack), intent(inout) :: self
         class(*), intent(in) :: v
-        byte, allocatable :: b(:), h(:)
-        integer :: i,n
+        byte, allocatable :: b(:)
+        integer :: n
 
         call init_header
         call self%drop
@@ -90,12 +90,6 @@ contains
         self%v = b
         self%given = .true.
     end subroutine tpack
-
-    integer function length(self)
-        class(typack), intent(in) :: self
-        if(.not.self%given) return
-        length = -1 + size(self%v)
-    end function length
 
     logical function is_character(self)
         class(typack), intent(in) :: self
@@ -272,14 +266,14 @@ contains
     function get_dcomplex(self, mold) result(num)
         class(typack), intent(in) :: self
         complex(kind(0d0)), intent(in) :: mold
-        complex, parameter :: ei=(0e0,1e0)
+        complex(kind(0d0)), parameter :: di=(0d0,1d0)
         integer :: n
         complex(kind(0d0)) :: num
         if(.not.self%given) return
         n = size(self%v)
         if(is_little_endian()) then
             num = transfer(self%v(n:2:-1),num)
-            num = aimag(num) + ei*real(num)
+            num = aimag(num) + di*real(num)
         else
             num = transfer(self%v(2:n),num)
         end if
@@ -288,7 +282,7 @@ contains
     function get_byte(v) result(b)
         class(*), intent(in) :: v
         byte, allocatable :: b(:)
-        integer :: i,n
+        integer :: n
 
         n = sizeof(v)
         allocate(b(n))
