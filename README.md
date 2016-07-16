@@ -142,7 +142,7 @@ A typack object can be used as a key to consult assoc instead of raw datum.
 A typack object can encode and decode between a raw datum and a byte array packed with type information.
 
 ### Subroutines
-**tpack(** *string* **)** / **tpack(** *num* **)**  
+**enpack(** *string* **)** / **enpack(** *num* **)**  
 Encode a raw datum into a byte array.
 It is made with big-endian style,
 which has one byte type-signature at its first byte.
@@ -151,14 +151,14 @@ which has one byte type-signature at its first byte.
 **get()**  
 Give the datum as a byte array.
 
-**tunpack(** *mold* **)**  
+**depack(** *mold* **)**  
 Decode the byte array back to the original datum.
 The result has the same type as *mold*.
 
 **get_str()**  
 Decode the byte array back to the original datum,
 and convert it into a character string.
-If the original is a string, this is the same as tunpack().
+If the original is a string, this is the same as **depack()**.
 
 **get_type()**  
 Give a type information.

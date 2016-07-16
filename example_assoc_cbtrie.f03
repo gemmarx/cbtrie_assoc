@@ -34,7 +34,7 @@ program main
     print *, kvs%get('#',i)
     print *, kvs%get(88)
     print *, kvs%get(88, 0.0)
-    call tpk%tpack(1.000)
+    call tpk%enpack(1.000)
     print *, kvs%get(tpk, x)
 
     print *

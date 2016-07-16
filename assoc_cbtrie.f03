@@ -356,7 +356,7 @@ contains
         byte, allocatable :: bseq(:)
         type(typack) :: tpk
 
-        call tpk%tpack(k)
+        call tpk%enpack(k)
         bseq = tpk%get()
         call self%cbt%acquire(new)
         if(0.ne.self%cbt%t(self%cbt%root)%dat) then
@@ -364,7 +364,7 @@ contains
             if(self%is_same_key(bseq, src)) then
                 call self%cbt%release(new)
                 kvloc = self%cbt%t(src)%dat
-                call self%kvs%bv(kvloc)%tpack(v)
+                call self%kvs%bv(kvloc)%enpack(v)
                 return
             end if
             call self%cbt%acquire(node)
@@ -394,7 +394,7 @@ contains
         self%cbt%t(new)%n1 = 0
         self%cbt%t(new)%dat = kvloc
         call self%kvs%bk(kvloc)%put(bseq)
-        call self%kvs%bv(kvloc)%tpack(v)
+        call self%kvs%bv(kvloc)%enpack(v)
     end subroutine put
 
     subroutine del(self, key)
@@ -404,7 +404,7 @@ contains
         integer :: leaf, kvloc, up, upup, root, fellow, cpos
         type(typack) :: tpk
 
-        call tpk%tpack(key)
+        call tpk%enpack(key)
         bseq = tpk%get()
         root = self%cbt%root
         call self%retrieve(bseq,0,leaf,cpos)
@@ -453,7 +453,7 @@ contains
         logical :: being
         type(typack) :: bv
         call get1(self, key, being, bv)
-        if(being) get_integer = bv%tunpack(mold)
+        if(being) get_integer = bv%depack(mold)
     end function get_integer
 
     real function get_real(self, key, mold)
@@ -463,7 +463,7 @@ contains
         logical :: being
         type(typack) :: bv
         call get1(self, key, being, bv)
-        if(being) get_real = bv%tunpack(mold)
+        if(being) get_real = bv%depack(mold)
     end function get_real
 
     double precision function get_double(self, key, mold)
@@ -473,7 +473,7 @@ contains
         logical :: being
         type(typack) :: bv
         call get1(self, key, being, bv)
-        if(being) get_double = bv%tunpack(mold)
+        if(being) get_double = bv%depack(mold)
     end function get_double
 
     complex function get_complex(self, key, mold)
@@ -483,7 +483,7 @@ contains
         logical :: being
         type(typack) :: bv
         call get1(self, key, being, bv)
-        if(being) get_complex = bv%tunpack(mold)
+        if(being) get_complex = bv%depack(mold)
     end function get_complex
 
     complex(kind(0d0)) function get_dcomplex(self, key, mold)
@@ -493,7 +493,7 @@ contains
         logical :: being
         type(typack) :: bv
         call get1(self, key, being, bv)
-        if(being) get_dcomplex = bv%tunpack(mold)
+        if(being) get_dcomplex = bv%depack(mold)
     end function get_dcomplex
 
     function get_str(self, key, char_mold)
@@ -526,7 +526,7 @@ contains
         class is(typack)
             bseq = key%get()
         class default
-            call tpk%tpack(key)
+            call tpk%enpack(key)
             bseq = tpk%get()
         end select
         call self%retrieve(bseq,0,near)
@@ -585,7 +585,7 @@ contains
         class is(typack)
             bseq = key%get()
         class default
-            call tpk%tpack(key)
+            call tpk%enpack(key)
             bseq = tpk%get()
         end select
         call self%retrieve(bseq,0,near,cpos)
@@ -611,7 +611,7 @@ contains
         class is(typack)
             bseq = key%get()
         class default
-            call tpk%tpack(key)
+            call tpk%enpack(key)
             bseq = tpk%get()
         end select
         call self%retrieve(bseq,0,near,cpos)

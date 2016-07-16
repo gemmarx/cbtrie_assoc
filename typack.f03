@@ -11,12 +11,12 @@ module class_typack
         logical :: given=.false.
         byte, private, allocatable :: v(:)
     contains
-        procedure :: put, get, tpack, drop, get_type
+        procedure :: put, get, enpack, drop, get_type
         procedure :: is_character, is_real, is_double, &
             is_integer, is_complex, is_dcomplex, is_numeric
         procedure :: get_str, get_real, get_double, &
             get_integer, get_complex, get_dcomplex
-        generic :: tunpack => &
+        generic :: depack => &
             get_integer, get_real, get_double, &
             get_complex, get_dcomplex, get_str
     end type typack
@@ -62,7 +62,7 @@ contains
         get = self%v
     end function get
 
-    subroutine tpack(self, v)
+    subroutine enpack(self, v)
         class(typack), intent(inout) :: self
         class(*), intent(in) :: v
         byte, allocatable :: b(:)
@@ -89,7 +89,7 @@ contains
 
         self%v = b
         self%given = .true.
-    end subroutine tpack
+    end subroutine enpack
 
     logical function is_character(self)
         class(typack), intent(in) :: self
@@ -194,15 +194,15 @@ contains
             allocate(character(n)::get_str)
             forall(i=1:n) get_str(i:i) = transfer(self%v(1+i),' ')
         else if(HINT.eq.h) then
-            get_str = ntos(self%tunpack(0))
+            get_str = ntos(self%depack(0))
         else if(HREAL.eq.h) then
-            get_str = ntos(self%tunpack(0e0))
+            get_str = ntos(self%depack(0e0))
         else if(HDBLE.eq.h) then
-            get_str = ntos(self%tunpack(0d0))
+            get_str = ntos(self%depack(0d0))
         else if(HCMPLX.eq.h) then
-            get_str = ntos(self%tunpack((0,0)))
+            get_str = ntos(self%depack((0,0)))
         else if(HDCMPLX.eq.h) then
-            get_str = ntos(self%tunpack((0d0,0d0)))
+            get_str = ntos(self%depack((0d0,0d0)))
         end if
     end function get_str
 
