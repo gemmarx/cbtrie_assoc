@@ -204,13 +204,13 @@ module class_assoc_cbtrie
         type(trie) :: cbt
         type(kvarrs) :: kvs
     contains
-        procedure :: init, drop, put, del, have, keys, dump, &
-            next, prev, first, last, get_type, get_str, nelm
+        procedure :: init, drop, put, del, have, keys, dump, defrag, &
+            next, prev, first, last, get_type, nelm
         procedure, private :: get_crit_digit, retrieve, is_same_key
-        procedure, private :: &
-            get_integer, get_real, get_double, get_complex, get_dcomplex
-        generic :: get => get_integer, get_real, get_double, &
-            get_complex, get_dcomplex, get_str
+        procedure, private :: get_obj, get_str, get_real, get_double, &
+            get_integer, get_complex, get_dcomplex
+        generic :: get => get_obj, get_str, get_real, get_double, &
+            get_integer, get_complex, get_dcomplex
     end type assoc
 
 contains
@@ -231,8 +231,7 @@ contains
         byte, allocatable :: br(:)
         integer :: n, i, j, g(5), cell
 
-        write(*, '(a)', advance='no'), 'root node:  '
-        print *, self%cbt%root
+        print *, 'root node:', self%cbt%root
         n = -1+self%cbt%ind; i=1
         allocate(ar(n))
         call push_key(self%cbt,self%cbt%root,ar,i,.true.)
@@ -245,22 +244,21 @@ contains
             g(5) = self%cbt%t(ar(i))%up
             print *, g(1:5)
         end do
-        n = -1+self%kvs%ind; i=1
+        n = -1 + self%kvs%ind
         deallocate(ar)
         allocate(ar(n))
-        call push_key(self%cbt,self%cbt%root,ar,i)
+        i=1 ; call push_key(self%cbt,self%cbt%root,ar,i)
         print *, 'cell  key  value'
         do i=1, n
             cell = self%cbt%t(ar(i))%dat
-            write(*, '(i0,a)', advance='no'), cell, '   '
-            write(*, '(a)', advance='no'), self%kvs%bk(cell)%get_str()
+            write(*, '(i0,2a)', advance='no'), cell, '   ', &
+                                               self%kvs%bk(cell)%get_str()
             print *, '=> ', self%kvs%bv(cell)%get_str()
             br = self%kvs%bk(cell)%get()
             do j=1, size(br)
-                write(*, '(a)', advance='no') ' '
-                write(*, '(a)', advance='no') byte_to_bitchar(br(j))
+                write(*, '(2a)', advance='no') ' ', byte_to_bitchar(br(j))
             end do
-            print *, ""
+            print *
         end do
     end subroutine dump
 
@@ -349,15 +347,26 @@ contains
         if(all(bseq.eq.cseq)) is_same_key = .true.
     end function is_same_key
 
+    function pack_or_get(v)
+        class(*), intent(in) :: v
+        byte, allocatable :: pack_or_get(:)
+        type(typack) :: tpk
+        select type(v)
+        class is(typack)
+            pack_or_get = v%get()
+        class default
+            call tpk%enpack(v)
+            pack_or_get = tpk%get()
+        end select
+    end function pack_or_get
+
     subroutine put(self, k, v)
         class(assoc), intent(inout) :: self
         class(*), intent(in) :: k, v
         integer :: src, node, new, up, kvloc, cpos
         byte, allocatable :: bseq(:)
-        type(typack) :: tpk
-
-        call tpk%enpack(k)
-        bseq = tpk%get()
+        
+        bseq = pack_or_get(k)
         call self%cbt%acquire(new)
         if(0.ne.self%cbt%t(self%cbt%root)%dat) then
             call self%retrieve(bseq,0,src,cpos)
@@ -394,7 +403,7 @@ contains
         self%cbt%t(new)%n1 = 0
         self%cbt%t(new)%dat = kvloc
         call self%kvs%bk(kvloc)%put(bseq)
-        call self%kvs%bv(kvloc)%enpack(v)
+        call self%kvs%bv(kvloc)%put(pack_or_get(v))
     end subroutine put
 
     subroutine del(self, key)
@@ -402,10 +411,8 @@ contains
         class(*), intent(in) :: key
         byte, allocatable :: bseq(:)
         integer :: leaf, kvloc, up, upup, root, fellow, cpos
-        type(typack) :: tpk
 
-        call tpk%enpack(key)
-        bseq = tpk%get()
+        bseq = pack_or_get(key)
         root = self%cbt%root
         call self%retrieve(bseq,0,leaf,cpos)
         kvloc = self%cbt%t(leaf)%dat
@@ -445,6 +452,14 @@ contains
         call get1(self, key, being, bv)
         if(being) get_type = bv%get_type()
     end function get_type
+
+    type(typack) function get_obj(self, key, mold)
+        class(assoc), intent(in) :: self
+        class(*), intent(in) :: key
+        type(typack), intent(in) :: mold
+        logical :: being
+        call get1(self, key, val=get_obj)
+    end function get_obj
 
     integer function get_integer(self, key, mold)
         class(assoc), intent(in) :: self
@@ -520,15 +535,8 @@ contains
         logical, optional :: being
         type(typack), optional :: val
         integer :: near, kvloc
-        type(typack) :: tpk
         
-        select type(key)
-        class is(typack)
-            bseq = key%get()
-        class default
-            call tpk%enpack(key)
-            bseq = tpk%get()
-        end select
+        bseq = pack_or_get(key)
         call self%retrieve(bseq,0,near)
         kvloc = self%cbt%t(near)%dat
         if(present(being)) being = .false.
@@ -579,15 +587,8 @@ contains
         type(typack) :: next
         byte, allocatable :: bseq(:)
         integer :: node, near, cpos
-        type(typack) :: tpk
         
-        select type(key)
-        class is(typack)
-            bseq = key%get()
-        class default
-            call tpk%enpack(key)
-            bseq = tpk%get()
-        end select
+        bseq = pack_or_get(key)
         call self%retrieve(bseq,0,near,cpos)
         if(self%is_same_key(bseq, near) .or. test_cbit(bseq, cpos)) then
             node = self%cbt%next(near)
@@ -605,15 +606,8 @@ contains
         type(typack) :: prev
         byte, allocatable :: bseq(:)
         integer :: node, near, cpos
-        type(typack) :: tpk
         
-        select type(key)
-        class is(typack)
-            bseq = key%get()
-        class default
-            call tpk%enpack(key)
-            bseq = tpk%get()
-        end select
+        bseq = pack_or_get(key)
         call self%retrieve(bseq,0,near,cpos)
         if(self%is_same_key(bseq, near) .or. .not.test_cbit(bseq, cpos)) then
             node = self%cbt%prev(near)
@@ -646,5 +640,27 @@ contains
         node = self%cbt%part_greatest(root)
         call last%put(self%kvs%bk(self%cbt%t(node)%dat)%get())
     end function last
+
+    subroutine defrag(self)
+        class(assoc), intent(inout) :: self
+        integer :: i,n,kvloc
+        integer, allocatable :: ar(:)
+        type(typack), allocatable :: ks(:), vs(:)
+
+        n = self%nelm()
+        allocate(ar(n),ks(n),vs(n))
+        i=1 ; call push_key(self%cbt,self%cbt%root,ar,i)
+        do i=1,n
+            kvloc = self%cbt%t(ar(i))%dat
+            call ks(i)%put(self%kvs%bk(kvloc)%get())
+            call vs(i)%put(self%kvs%bv(kvloc)%get())
+        end do
+
+        call self%drop
+        call self%init
+        do i=1,n
+            call self%put(ks(i),vs(i))
+        end do
+    end subroutine defrag
 end module class_assoc_cbtrie
 

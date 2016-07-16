@@ -13,9 +13,29 @@ Hash cannot keep the order of keys.
 Btree is to take a time depending on the number of keys to do search operation.
 Crit-bit trees is a trie system which has a good balance against the problems.
 
+## Build
+```bash
+$ make
+# "example_assoc_cbtrie" is a executable file. Try it.
+$ ./example_assoc_cbtrie
+```
+libcbtrie.a and *.mod are made at the same time.
+Original sources or a library, either one can be used as usual.
+```bash
+$ gfortran -o TARGET YOURCODE.f03 -L. -lcbtrie
+$ gfortran -o TARGET convert.f03 typack.f03 assoc_cbtrie.f03 YOURCODE.f03
+# "assoc_cbtiie" depends on "typack" and "convert".
+```
+<!--
+example_{string|deque|typack} are optional examples.
+"string" and "deque" have been used in obsolete versions.
+This dangling classes are left as stand-alone tools. 
+-->
+
+
 ## Usage
 Hello assoc
-##### test.f03
+##### test1.f03
 ```FORTRAN
 program main
     use class_assoc_cbtrie
@@ -32,8 +52,8 @@ end program main
 ```
 
 ```bash
-$ gfortran -o test converter.f03 typack.f03 assoc_cbtrie.f03 test.f03
-$ ./test
+$ gfortran -o test1 converter.f03 typack.f03 assoc_cbtrie.f03 test1.f03
+$ ./test1
  assoc
 ```
 
