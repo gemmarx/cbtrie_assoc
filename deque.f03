@@ -36,7 +36,7 @@ contains
         self%head = 0
         self%tail = 0
         self%last = 0
-        deallocate(self%que)
+        if(allocated(self%que)) deallocate(self%que)
     end subroutine drop
 
     subroutine dump(self)
@@ -115,11 +115,14 @@ contains
         class(deque), intent(inout) :: self
         character(:), intent(out), allocatable :: v
         integer :: i
+        real :: p,r
+
         i = self%head
         if(0.eq.i) then
             v = NULLCHAR
             return
         end if
+
         v = self%que(i)%get()
         if(i.eq.self%tail) then
             self%head = 0
@@ -127,12 +130,18 @@ contains
         else
             self%head = -1+i
         end if
+
+        r = 1.0/(10 + 0.5*self%nelm())
+        call random_number(p)
+        if(r.gt.p) call self%clip
     end subroutine pop
 
     subroutine shift(self, v)
         class(deque), intent(inout) :: self
         character(:), intent(out), allocatable :: v
         integer :: i
+        real :: p,r
+
         i = self%tail
         if(0.eq.i) then
             v = NULLCHAR
@@ -145,6 +154,10 @@ contains
         else
             self%tail = 1+i
         end if
+
+        r = 1.0/(10 + 0.5*self%nelm())
+        call random_number(p)
+        if(r.gt.p) call self%clip
     end subroutine shift
 end module class_deque
 
