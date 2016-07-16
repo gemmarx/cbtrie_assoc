@@ -12,7 +12,7 @@ module class_resource_pool
         integer, allocatable :: que(:)
         integer :: ind, last
     contains
-        procedure :: init, acquire, release, expand
+        procedure :: init, drop, acquire, release, expand
     end type respool
 
 contains
@@ -20,10 +20,18 @@ contains
         class(respool), intent(inout) :: self
         integer, intent(in) :: num
         integer :: i
+        if(allocated(self%que)) deallocate(self%que)
         self%que = ([(i,i=1,num)])
         self%ind = 1
         self%last = num
     end subroutine init
+
+    subroutine drop(self)
+        class(respool), intent(inout) :: self
+        if(allocated(self%que)) deallocate(self%que)
+        self%ind = 0
+        self%last = 0
+    end subroutine drop
 
     subroutine acquire(self, idx)
         class(respool), intent(inout) :: self
@@ -65,7 +73,7 @@ module class_trie
         type(node), allocatable :: t(:)
         integer :: root
     contains
-        procedure :: init, expand, part_smallest, part_greatest, next, prev
+        procedure :: init, drop, expand, part_smallest, part_greatest, next, prev
     end type trie
 
 contains
@@ -73,6 +81,7 @@ contains
         class(trie), intent(inout) :: self
         integer, intent(in) :: num
         integer :: i
+        if(allocated(self%t)) call self%drop
         allocate(self%t(num))
         do i=1,num
             self%t(i)%n0 = 0
@@ -83,6 +92,13 @@ contains
         self%root = 1
         call self%respool%init(num)
     end subroutine init
+
+    subroutine drop(self)
+        class(trie), intent(inout) :: self
+        if(allocated(self%t)) deallocate(self%t)
+        self%root = 0
+        call self%respool%drop
+    end subroutine drop
 
     subroutine expand(self)
         class(trie), intent(inout) :: self
@@ -154,16 +170,24 @@ module class_kv_arrays
     type, public, extends(respool) :: kvarrs
         type(typack), allocatable :: bk(:), bv(:)
     contains
-        procedure :: init, expand, release
+        procedure :: init, drop, expand, release
     end type kvarrs
 
 contains
     subroutine init(self, num)
         class(kvarrs), intent(inout) :: self
         integer, intent(in) :: num
+        if(allocated(self%bk)) call self%drop
         allocate(self%bk(num), self%bv(num))
         call self%respool%init(num)
     end subroutine init
+
+    subroutine drop(self)
+        class(kvarrs), intent(inout) :: self
+        if(allocated(self%bk)) deallocate(self%bk)
+        if(allocated(self%bv)) deallocate(self%bv)
+        call self%respool%drop
+    end subroutine drop
 
     subroutine expand(self)
         class(kvarrs), intent(inout) :: self
@@ -222,7 +246,8 @@ contains
 
     subroutine drop(self)
         class(assoc), intent(inout) :: self
-        deallocate(self%cbt%que, self%cbt%t, self%kvs%que, self%kvs%bk, self%kvs%bv)
+        call self%cbt%drop
+        call self%kvs%drop
     end subroutine drop
 
     subroutine dump(self)
@@ -231,10 +256,14 @@ contains
         byte, allocatable :: br(:)
         integer :: n, i, j, g(5), cell
 
+        if(0.eq.self%nelm()) then
+            print *, 'Empty'
+            return
+        end if
         print *, 'root node:', self%cbt%root
-        n = -1+self%cbt%ind; i=1
+        n = -1 + self%cbt%ind
         allocate(ar(n))
-        call push_key(self%cbt,self%cbt%root,ar,i,.true.)
+        i=1 ; call push_key(self%cbt,self%cbt%root,ar,i,.true.)
         print *, 'node dat n0 n1 up'
         do i=1, n
             g(1) = ar(i)
@@ -412,6 +441,7 @@ contains
         byte, allocatable :: bseq(:)
         integer :: leaf, kvloc, up, upup, root, fellow, cpos
 
+        if(0.eq.self%nelm()) return
         bseq = pack_or_get(key)
         root = self%cbt%root
         call self%retrieve(bseq,0,leaf,cpos)
@@ -441,6 +471,10 @@ contains
         end if
         call self%cbt%release(leaf)
         call self%kvs%release(kvloc)
+
+        if(0.eq.self%nelm()) call self%init
+        if(TRIE_SIZE.lt.self%kvs%ind .and. &
+           4*self%kvs%ind.lt.self%kvs%last) call self%defrag
     end subroutine del
 
     function get_type(self, key)
@@ -536,6 +570,11 @@ contains
         type(typack), optional :: val
         integer :: near, kvloc
         
+        if(0.eq.self%nelm()) then
+            if(present(being)) being = .false.
+            if(present(val)) call val%drop
+            return
+        end if
         bseq = pack_or_get(key)
         call self%retrieve(bseq,0,near)
         kvloc = self%cbt%t(near)%dat
@@ -588,6 +627,8 @@ contains
         byte, allocatable :: bseq(:)
         integer :: node, near, cpos
         
+        call next%drop
+        if(0.eq.self%nelm()) return
         bseq = pack_or_get(key)
         call self%retrieve(bseq,0,near,cpos)
         if(self%is_same_key(bseq, near) .or. test_cbit(bseq, cpos)) then
@@ -595,8 +636,6 @@ contains
         else
             node = self%cbt%part_smallest(near)
         end if
-        call next%drop
-        if(0.eq.node) return
         call next%put(self%kvs%bk(self%cbt%t(node)%dat)%get())
     end function next
 
@@ -607,6 +646,8 @@ contains
         byte, allocatable :: bseq(:)
         integer :: node, near, cpos
         
+        call prev%drop
+        if(0.eq.self%nelm()) return
         bseq = pack_or_get(key)
         call self%retrieve(bseq,0,near,cpos)
         if(self%is_same_key(bseq, near) .or. .not.test_cbit(bseq, cpos)) then
@@ -614,8 +655,6 @@ contains
         else
             node = self%cbt%part_greatest(near)
         end if
-        call prev%drop
-        if(0.eq.node) return
         call prev%put(self%kvs%bk(self%cbt%t(node)%dat)%get())
     end function prev
 
@@ -625,7 +664,7 @@ contains
         integer :: root, node
         root = self%cbt%root
         call first%drop
-        if(0.eq.root) return
+        if(0.eq.self%nelm()) return
         node = self%cbt%part_smallest(root)
         call first%put(self%kvs%bk(self%cbt%t(node)%dat)%get())
     end function first
@@ -636,7 +675,7 @@ contains
         integer :: root, node
         root = self%cbt%root
         call last%drop
-        if(0.eq.root) return
+        if(0.eq.self%nelm()) return
         node = self%cbt%part_greatest(root)
         call last%put(self%kvs%bk(self%cbt%t(node)%dat)%get())
     end function last

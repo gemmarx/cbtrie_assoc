@@ -112,7 +112,7 @@ The result is a typack object.
 Give the number of pairs registered in.
 
 ## Usage2
-Traverse all the keys of an assoc
+Traverse all keys of an assoc
 ##### test2.f03
 ```FORTRAN
 program main
@@ -162,6 +162,9 @@ A typack object can be used as a key to consult assoc instead of raw datum.
 A typack object can encode and decode between a raw datum and a byte array packed with type information.
 
 ### Subroutines
+**put(** *bytes* **)**  
+Store a byte array just as it is.
+
 **enpack(** *string* **)** / **enpack(** *num* **)**  
 Encode a raw datum into a byte array.
 It is made with big-endian style,
@@ -182,4 +185,50 @@ If the original is a string, this is the same as **depack()**.
 
 **get_type()**  
 Give a type information.
+
+## Usage3
+By encoding/decoding to/from byte array in manual,
+arbitrary data can be stored.
+##### test3.f03
+```Fortran
+program main
+    use class_typack
+    use class_assoc_cbtrie
+    implicit none
+
+    integer :: i, mat(3,2), outmat(3,2)
+    type(assoc) :: kvs
+    type(typack) :: v, outv
+    byte, allocatable :: bseq(:)
+    integer, allocatable :: iseq(:)
+
+    call kvs%init
+
+    mat(1,:) = [ 1, 4 ]
+    mat(2,:) = [ 2, 5 ]
+    mat(3,:) = [ 3, 6 ]
+
+    allocate(bseq(sizeof(mat)))
+    bseq = transfer(mat, bseq)
+    call v%put(bseq)
+    call kvs%put('matrix', v)
+
+    outv = kvs%get('matrix', outv)
+    allocate(iseq(size(outmat)))
+    iseq = transfer(outv%get(), iseq)
+    outmat = reshape(iseq, shape(outmat))
+
+    do i=1, size(outmat,1)
+        print *, outmat(i,:)
+    end do
+end program main
+```
+
+```bash
+$ gfortran -o test3 converter.f03 typack.f03 assoc_cbtrie.f03 test3.f03
+$ ./test3
+           1           4
+           2           5
+           3           6
+```
 
