@@ -23,7 +23,7 @@ libcbtrie.a and *.mod are made at the same time.
 Original sources or a library, either one can be used as usual.
 ```bash
 $ gfortran -o TARGET YOURCODE.f03 -L. -lcbtrie
-$ gfortran -o TARGET convert.f03 typack.f03 assoc_cbtrie.f03 YOURCODE.f03
+$ gfortran -o TARGET src/convert.f03 src/typack.f03 src/assoc_cbtrie.f03 YOURCODE.f03
 # "assoc_cbtiie" depends on "typack" and "convert".
 ```
 <!--
@@ -52,7 +52,7 @@ end program main
 ```
 
 ```bash
-$ gfortran -o test1 converter.f03 typack.f03 assoc_cbtrie.f03 test1.f03
+$ gfortran -o test1 test1.f03 -L. -lcbtrie
 $ ./test1
  assoc
 ```
@@ -145,7 +145,7 @@ end program main
 ```
 
 ```bash
-$ gfortran -o test2 converter.f03 typack.f03 assoc_cbtrie.f03 test2.f03
+$ gfortran -o test2 test2.f03 -L. -lcbtrie
 $ ./test2
  character:  bar => character:  value2
  character:  baz => character:  value3
@@ -225,7 +225,7 @@ end program main
 ```
 
 ```bash
-$ gfortran -o test3 converter.f03 typack.f03 assoc_cbtrie.f03 test3.f03
+$ gfortran -o test3 test3.f03 -L. -lcbtrie
 $ ./test3
            1           4
            2           5
