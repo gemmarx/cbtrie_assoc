@@ -11,7 +11,7 @@ module class_typack
         logical :: given=.false.
         byte, private, allocatable :: v(:)
     contains
-        procedure :: put, get, enpack, drop, get_type
+        procedure :: put, get, enpack, clear, get_type
         procedure :: is_character, is_real, is_double, &
             is_integer, is_complex, is_dcomplex, is_numeric
         procedure :: get_str, get_real, get_double, &
@@ -40,18 +40,18 @@ contains
         inited = .true.
     end subroutine init_header
 
-    subroutine drop(self)
+    subroutine clear(self)
         class(typack), intent(inout) :: self
         if(allocated(self%v)) deallocate(self%v)
         allocate(self%v(0))
         self%given = .false.
-    end subroutine drop
+    end subroutine clear
 
     subroutine put(self, seq)
         class(typack), intent(inout) :: self
         byte, intent(in) :: seq(:)
         call init_header
-        call self%drop
+        call self%clear
         self%v = seq
         self%given = .true.
     end subroutine put
@@ -69,7 +69,7 @@ contains
         integer :: n
 
         call init_header
-        call self%drop
+        call self%clear
 
         b = get_byte(v)
         select type(v)

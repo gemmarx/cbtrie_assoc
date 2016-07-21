@@ -7,7 +7,7 @@ program main
     type(typack) :: tpk
     byte, allocatable :: b(:)
 
-    call tpk%drop
+    call tpk%clear
     print *, tpk%is_numeric()
 
     call tpk%enpack('foo')

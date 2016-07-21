@@ -210,8 +210,8 @@ contains
     subroutine release(self, idx)
         class(kvarrs), intent(inout) :: self
         integer, intent(in) :: idx
-        call self%bk(idx)%drop
-        call self%bv(idx)%drop
+        call self%bk(idx)%clear
+        call self%bv(idx)%clear
         call self%respool%release(idx)
     end subroutine release
 end module class_kv_arrays
@@ -572,7 +572,7 @@ contains
         
         if(0.eq.self%nelm()) then
             if(present(being)) being = .false.
-            if(present(val)) call val%drop
+            if(present(val)) call val%clear
             return
         end if
         bseq = pack_or_get(key)
@@ -627,7 +627,7 @@ contains
         byte, allocatable :: bseq(:)
         integer :: node, near, cpos
         
-        call next%drop
+        call next%clear
         if(0.eq.self%nelm()) return
         bseq = pack_or_get(key)
         call self%retrieve(bseq,0,near,cpos)
@@ -647,7 +647,7 @@ contains
         byte, allocatable :: bseq(:)
         integer :: node, near, cpos
         
-        call prev%drop
+        call prev%clear
         if(0.eq.self%nelm()) return
         bseq = pack_or_get(key)
         call self%retrieve(bseq,0,near,cpos)
@@ -665,7 +665,7 @@ contains
         type(typack) :: first
         integer :: root, node
         root = self%cbt%root
-        call first%drop
+        call first%clear
         if(0.eq.self%nelm()) return
         node = self%cbt%part_smallest(root)
         call first%put(self%kvs%bk(self%cbt%t(node)%dat)%get())
@@ -676,7 +676,7 @@ contains
         type(typack) :: last
         integer :: root, node
         root = self%cbt%root
-        call last%drop
+        call last%clear
         if(0.eq.self%nelm()) return
         node = self%cbt%part_greatest(root)
         call last%put(self%kvs%bk(self%cbt%t(node)%dat)%get())
