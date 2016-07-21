@@ -8,10 +8,9 @@ module class_typack
     byte, save :: HCHAR, HINT, HREAL, HDBLE, HCMPLX, HDCMPLX
 
     type, public :: typack
-        logical :: given=.false.
         byte, private, allocatable :: v(:)
     contains
-        procedure :: put, get, enpack, clear, get_type
+        procedure :: put, get, enpack, clear, get_type, given, is_empty
         procedure :: is_character, is_real, is_double, &
             is_integer, is_complex, is_dcomplex, is_numeric
         procedure :: get_str, get_real, get_double, &
@@ -44,8 +43,20 @@ contains
         class(typack), intent(inout) :: self
         if(allocated(self%v)) deallocate(self%v)
         allocate(self%v(0))
-        self%given = .false.
     end subroutine clear
+
+    logical function given(self)
+        class(typack), intent(in) :: self
+        given = .not.self%is_empty()
+    end function given
+
+    logical function is_empty(self)
+        class(typack), intent(in) :: self
+        is_empty = .true.
+        if(.not.allocated(self%v)) return
+        if(0.eq.size(self%v)) return
+        is_empty = .false.
+    end function is_empty
 
     subroutine put(self, seq)
         class(typack), intent(inout) :: self
@@ -53,7 +64,6 @@ contains
         call init_header
         call self%clear
         self%v = seq
-        self%given = .true.
     end subroutine put
 
     function get(self)
@@ -88,13 +98,12 @@ contains
         end select
 
         self%v = b
-        self%given = .true.
     end subroutine enpack
 
     logical function is_character(self)
         class(typack), intent(in) :: self
         is_character = .false.
-        if(.not.self%given) return
+        if(self%is_empty()) return
         call init_header
         if(HCHAR.eq.self%v(1)) is_character = .true.
     end function is_character
@@ -102,7 +111,7 @@ contains
     logical function is_integer(self)
         class(typack), intent(in) :: self
         is_integer = .false.
-        if(.not.self%given) return
+        if(self%is_empty()) return
         call init_header
         if(HINT.eq.self%v(1)) is_integer = .true.
     end function is_integer
@@ -110,7 +119,7 @@ contains
     logical function is_real(self)
         class(typack), intent(in) :: self
         is_real = .false.
-        if(.not.self%given) return
+        if(self%is_empty()) return
         call init_header
         if(HREAL.eq.self%v(1)) is_real = .true.
     end function is_real
@@ -118,7 +127,7 @@ contains
     logical function is_double(self)
         class(typack), intent(in) :: self
         is_double = .false.
-        if(.not.self%given) return
+        if(self%is_empty()) return
         call init_header
         if(HDBLE.eq.self%v(1)) is_double = .true.
     end function is_double
@@ -126,7 +135,7 @@ contains
     logical function is_complex(self)
         class(typack), intent(in) :: self
         is_complex = .false.
-        if(.not.self%given) return
+        if(self%is_empty()) return
         call init_header
         if(HCMPLX.eq.self%v(1)) is_complex = .true.
     end function is_complex
@@ -134,7 +143,7 @@ contains
     logical function is_dcomplex(self)
         class(typack), intent(in) :: self
         is_dcomplex = .false.
-        if(.not.self%given) return
+        if(self%is_empty()) return
         call init_header
         if(HDCMPLX.eq.self%v(1)) is_dcomplex = .true.
     end function is_dcomplex
@@ -142,7 +151,7 @@ contains
     logical function is_numeric(self)
         class(typack), intent(in) :: self
         is_numeric = .false.
-        if(.not.self%given) return
+        if(self%is_empty()) return
         call init_header
         if(HINT.eq.self%v(1) .or. &
            HREAL.eq.self%v(1) .or. &
@@ -157,7 +166,7 @@ contains
         byte :: h
 
         get_type = 'no value'
-        if(.not.self%given) return
+        if(self%is_empty()) return
         call init_header
 
         h = self%v(1)
@@ -185,7 +194,7 @@ contains
         character(:), allocatable :: get_str
         byte :: h
 
-        if(.not.self%given) return
+        if(self%is_empty()) return
         call init_header
 
         h = self%v(1)
@@ -210,7 +219,7 @@ contains
         class(typack), intent(in) :: self
         integer, intent(in) :: mold
         integer :: n,num
-        if(.not.self%given) return
+        if(self%is_empty()) return
         n = size(self%v)
         if(is_little_endian()) then
             num = transfer(self%v(n:2:-1),num)
@@ -224,7 +233,7 @@ contains
         real, intent(in) :: mold
         integer :: n
         real :: num
-        if(.not.self%given) return
+        if(self%is_empty()) return
         n = size(self%v)
         if(is_little_endian()) then
             num = transfer(self%v(n:2:-1),num)
@@ -238,7 +247,7 @@ contains
         double precision, intent(in) :: mold
         integer :: n
         double precision :: num
-        if(.not.self%given) return
+        if(self%is_empty()) return
         n = size(self%v)
         if(is_little_endian()) then
             num = transfer(self%v(n:2:-1),num)
@@ -253,7 +262,7 @@ contains
         complex, parameter :: ei=(0e0,1e0)
         integer :: n
         complex :: num
-        if(.not.self%given) return
+        if(self%is_empty()) return
         n = size(self%v)
         if(is_little_endian()) then
             num = transfer(self%v(n:2:-1),num)
@@ -269,7 +278,7 @@ contains
         complex(kind(0d0)), parameter :: di=(0d0,1d0)
         integer :: n
         complex(kind(0d0)) :: num
-        if(.not.self%given) return
+        if(self%is_empty()) return
         n = size(self%v)
         if(is_little_endian()) then
             num = transfer(self%v(n:2:-1),num)

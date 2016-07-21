@@ -132,7 +132,7 @@ program main
     call kvs%put(2, 3)
 
     key = kvs%first()
-    do while(key%given)
+    do while(key%given())
         print *, key%get_type(),    ':  ' , &
                  key%get_str(),     ' => ', &
                  kvs%get_type(key), ':  ' , &
@@ -168,6 +168,9 @@ Encode a raw datum into a byte array.
 It is made with big-endian style,
 which has one byte type-signature at its first byte.
 
+**clear()**  
+Remove the value stored in the object.
+
 ### Functions
 **get()**  
 Give the datum as a byte array.
@@ -183,6 +186,13 @@ If the original is a string, this is the same as **depack()**.
 
 **get_type()**  
 Give a type information.
+
+**is_empty()**  
+Give if the object is empty.
+The result is a logical value.
+
+**given()**  
+Inversion of **is_empty()** .
 
 ## Usage3
 By encoding/decoding to/from byte array in manual,
