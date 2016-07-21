@@ -636,6 +636,7 @@ contains
         else
             node = self%cbt%part_smallest(near)
         end if
+        if(0.eq.node) return
         call next%put(self%kvs%bk(self%cbt%t(node)%dat)%get())
     end function next
 
@@ -655,6 +656,7 @@ contains
         else
             node = self%cbt%part_greatest(near)
         end if
+        if(0.eq.node) return
         call prev%put(self%kvs%bk(self%cbt%t(node)%dat)%get())
     end function prev
 

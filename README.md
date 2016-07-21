@@ -120,9 +120,7 @@ program main
     use class_assoc_cbtrie
     implicit none
 
-    integer :: i
     type(assoc) :: kvs
-    type(typack), allocatable :: ks(:)
     type(typack) :: key
     
     call kvs%init
@@ -133,13 +131,13 @@ program main
     call kvs%put('baz', 'value3')
     call kvs%put(2, 3)
 
-    call kvs%keys(ks)
-    do i=1, size(ks)
-        key = ks(i)
+    key = kvs%first()
+    do while(key%given)
         print *, key%get_type(),    ':  ' , &
                  key%get_str(),     ' => ', &
                  kvs%get_type(key), ':  ' , &
                  kvs%get(key)
+        key = kvs%next(key)
     end do
 end program main
 ```
