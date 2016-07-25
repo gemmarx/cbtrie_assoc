@@ -1,4 +1,4 @@
-Assoc Critbit Trie
+Assoc Critbit Trie [![License (2-Clause BSD)](https://img.shields.io/badge/license-BSD%202--Clause-blue.svg)](./LICENSE)
 ==
 An associative array based on [Crit-bit trees](https://cr.yp.to/critbit.html) in Fortran 2003.
 - GFortran (>5.x) is required because full support for deferred length character is needed.
@@ -16,6 +16,7 @@ Crit-bit trees is a trie system which has a good balance against the problems.
 ## Build
 ```bash
 $ make
+
 # "example_assoc_cbtrie" is a executable file. Try it.
 $ ./example_assoc_cbtrie
 ```
